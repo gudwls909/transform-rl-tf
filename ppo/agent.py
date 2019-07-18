@@ -5,7 +5,7 @@ import copy
 
 from environment import MnistEnvironment, Environment
 from replay_memory import ReplayMemory
-from ddpg_model import PPO
+from ppo_model import PPO
 from origin_model.mnist_solver import Network
 
 class Agent(object):
