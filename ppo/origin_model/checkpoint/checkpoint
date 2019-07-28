@@ -1,0 +1,6 @@
+model_checkpoint_path: "net.model-8500"
+all_model_checkpoint_paths: "net.model-6500"
+all_model_checkpoint_paths: "net.model-7000"
+all_model_checkpoint_paths: "net.model-7500"
+all_model_checkpoint_paths: "net.model-8000"
+all_model_checkpoint_paths: "net.model-8500"
