@@ -45,7 +45,7 @@ class PPO(object):
             std = tf.add(std, tf.constant(0.5, shape=(self.replay.batch_size, self.action_size)))
             #std = tf.ones([self.replay.batch_size, self.action_size])
             output = tf.contrib.distributions.Normal(loc=m, scale=std)
-            sampled_output = output.sample([self.action_size])
+            sampled_output = tf.clip_by_value(output.sample([self.action_size]), -np.array(self.action_limit), self.action_limit)
             return output, sampled_output  # [batch_size, action_size]
             pass
 
@@ -80,6 +80,8 @@ class PPO(object):
     def train_network(self):
         states, actions, rewards, next_states, terminals, gaes = self.replay.mini_batch()
 
+        actions = np.arctan(actions)
+
         next_target_v = self.sess.run(self.critic_target, feed_dict={self.state: next_states})
 
         target = []
@@ -91,7 +93,7 @@ class PPO(object):
         target = np.reshape(target, [self.replay.batch_size, 1])
 
         self.sess.run(self.train, feed_dict={self.state: states, self.advantage: gaes, self.actions: actions, self.target: target})
-        print(self.sess.run([0.5 * self.entropy, self.loss], feed_dict={self.state: states, self.advantage: gaes, self.actions: actions, self.target: target}))
+        # print(self.sess.run([0.5 * self.entropy, self.loss], feed_dict={self.state: states, self.advantage: gaes, self.actions: actions, self.target: target}))
         return self.sess.run(self.loss, feed_dict={self.state: states, self.advantage: gaes, self.actions: actions, self.target: target})
         pass
 

@@ -8,12 +8,13 @@ from agent import Agent
 # parameter 저장하는 parser
 parser = argparse.ArgumentParser(description="Pendulum")
 parser.add_argument('--gpu_number', default='0', type=str)
-parser.add_argument('--learning_rate', default=0.0003, type=float)
+parser.add_argument('--learning_rate', default=0.0001, type=float)
 parser.add_argument('--batch_size', default=32, type=int)
-parser.add_argument('--discount_factor', default=0.9, type=float)
-parser.add_argument('--epochs', default=1, type=float)
+parser.add_argument('--discount_factor', default=0.95, type=float)
+parser.add_argument('--continue_train', default=False, type=bool)
+parser.add_argument('--epochs', default=1, type=int)
 parser.add_argument('--epsilon', default=0.2, type=float)
-parser.add_argument('--save_dir', default='discount_only', type=str)
+parser.add_argument('--save_dir', default='ex', type=str)
 parser.add_argument('--render_dir', default='render_train', type=str)
 parser.add_argument('--play_dir', default='render_test', type=str)
 args = parser.parse_args()
@@ -40,11 +41,6 @@ if __name__ == '__main__':
 
         agent.train()
         agent.save()
+        
         agent.load()
-        rewards = []
-        for i in range(20):
-            r = agent.play()
-            rewards.append(int(r))
-        mean = np.mean(rewards)
-        print(rewards)
-        print(mean)
+        agent.play()

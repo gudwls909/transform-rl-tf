@@ -11,38 +11,146 @@ pil2np = lambda img: np.expand_dims((np.array(img) / 255.), axis=2)
 pil_rotate = lambda img, angle: img.rotate(angle)
 pil_blur = lambda img, radius: img.filter(ImageFilter.GaussianBlur(radius))
 pil_sharpen = lambda img, radius: img.filter(ImageFilter.UnsharpMask(radius))
+pil_affine = lambda img, theta: img.transform(img.size, Image.AFFINE, 
+                                              theta, resample=Image.BICUBIC)
 
 
-def np_rotate(img, angle):
-    img = np2pil(img)
-    img = pil_rotate(img, angle)
-    img = pil2np(img)
-    return img
-    
-
-def np_sharpen(img, radius):
-    img = np2pil(img)
-    img = pil_sharpen(img, radius)
-    img = pil2np(img)
-    return img
-
-
-def random_degrade(img, angle=None, radius=None):
+def theta2mtx(theta):
     '''
-    img: 28*28*1 with each value ranged in [0,1]
+    Args:
+        theta(np.array): 6 parameters for affine transformation, size=(6,)
+    Returns:
+        affine_mtx(np.array): size=(3,3)
     '''
-    img = np2pil(img)
-    
-    if angle==None:
-        angle = np.random.randint(-80,80)
-    img = pil_rotate(img, angle)
+    affine_mtx = np.eye(3)
+    affine_mtx[:2,:] = theta.reshape([2,3])
+    return affine_mtx
 
-    if radius==None:
-        radius = np.random.uniform(0.1,0.5)
-    img = pil_blur(img, radius)
-    
-    img = pil2np(img)
+
+def get_affine_theta(method, a_bound=None):
+    '''
+    Args:
+        method: one in ['translation','rotate','shear','scale']
+        a_bound(list): action boundary
+    Returns:
+        theta(np.array): 6 parameters for affine transformation, size=(6,)
+    '''
+    if method == 'translation':
+        a = np.random.uniform(a_bound[0], a_bound[1], 2)
+        theta = np.array((1, 0, a[0],
+                          0, 1, a[1]))
+
+    elif method == 'rotate':
+        sign = np.random.choice([-1,1])
+        a = sign * np.random.uniform(a_bound[0], a_bound[1])
+        a = np.pi*(a/180)
+        theta = np.array((np.cos(a), -np.sin(a), 0,
+                          np.sin(a), np.cos(a), 0))
+
+    elif method == 'shear':
+        a = np.random.uniform(a_bound[0], a_bound[1], 2)
+        theta = np.array((1, a[0], 0,
+                          a[1], 1, 0))
+
+    elif method == 'scale':
+        a = np.random.uniform(a_bound[0], a_bound[1], 2)
+        theta = np.array((a[0], 0, 0,
+                          0, a[1], 0))
+
+    else:
+        raise Exception("`method` should be one of the ['translation','rotate','shear','scale']")
+
+    return theta
+
+
+def random_affine_image(img, r_bound=[20,50], sh_bound=[-0.5,0.5], sc_bound=[0.7, 1.2], t_bound=[-12,0]):
+    '''
+    Args:
+        img(np.array): HWC format
+    Returns:
+        img(np.array): HWC format
+    '''
+    # translation : move center of the image to (0,0)
+    t1_mtx = theta2mtx(get_affine_theta('translation', [img.shape[1]/2,img.shape[0]/2]))
+
+    # rotate, shear, scale
+    r_mtx = theta2mtx(get_affine_theta('rotate', r_bound))
+    sh_mtx = theta2mtx(get_affine_theta('shear', sh_bound))
+    sc_mtx = theta2mtx(get_affine_theta('scale', sc_bound))
+
+    # translation : move back (0,0) to be the left-upper corner of the image
+    t2_mtx = theta2mtx(get_affine_theta('translation', [-img.shape[1]/2,-img.shape[0]/2]))
+
+    # translation : move mnist in (40,40) size black image
+    t3_mtx = theta2mtx(get_affine_theta('translation', t_bound))
+
+    # integrated affine transformation
+    affine_mtx = t1_mtx @ r_mtx @ sh_mtx @ sc_mtx @ t2_mtx @ t3_mtx
+
+    # transform image
+    aff_theta = affine_mtx[:2,:].flatten()
+    pil_img = np2pil(img)
+    pil_img = pil_img.transform((40,40), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
+    img = pil2np(pil_img)
+
     return img
+
+
+def theta2affine_img(img, theta, resize=None):
+    ''' 
+    Args:
+        img(np.array): HWC format with size (40,40,1)
+        theta(np.array): 6 parameters for affine transformation, size=(6,)
+    Returns:
+        img(np.array): HWC format with size (40,40,1) if resize=None
+    '''
+    pil_img = np2pil(img)
+    pil_img = pil_img.transform(pil_img.size, Image.AFFINE, theta, resample=Image.BICUBIC)
+    if resize is not None:
+        pil_img = pil_img.resize(resize, resample=Image.BICUBIC)
+    img = pil2np(pil_img)
+    return img
+
+
+def integrate_thetas(thetas):
+    mtxs = [theta2mtx(theta) for theta in thetas]
+    int_mtx = theta2mtx(np.array((1,0,0,0,1,0)))
+    for mtx in mtxs:
+        int_mtx = int_mtx @ mtx
+    int_theta = int_mtx[:2,:].flatten()
+    return int_theta
+    
+
+# def np_rotate(img, angle):
+#     img = np2pil(img)
+#     img = pil_rotate(img, angle)
+#     img = pil2np(img)
+#     return img
+#     
+# 
+# def np_sharpen(img, radius):
+#     img = np2pil(img)
+#     img = pil_sharpen(img, radius)
+#     img = pil2np(img)
+#     return img
+# 
+# 
+# def random_degrade(img, angle=None, radius=None):
+#     '''
+#     img: 28*28*1 with each value ranged in [0,1]
+#     '''
+#     img = np2pil(img)
+#     
+#     if angle==None:
+#         angle = np.random.randint(-80,80)
+#     img = pil_rotate(img, angle)
+# 
+#     if radius==None:
+#         radius = np.random.uniform(0.1,0.5)
+#     img = pil_blur(img, radius)
+#     
+#     img = pil2np(img)
+#     return img
 
 
 def make_grid(batch, nrow=8, padding=2):
