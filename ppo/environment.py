@@ -15,17 +15,13 @@ class MnistEnvironment(object):
 
         self.state_shape = [28, 28, 1]
         self.state_size = 784
-        self.action_size = 5
-        self.a_bound = np.array([[-30.,30.], 
-                                 [-0.5,0.5],
-                                 [-0.5,0.5],
-                                 [0.8,1.2],
-                                 [0.8,1.2]]) # [r, sh1, sh2, sc1, sc2]
+        self.action_size = 1
+        self.a_bound = np.array([[-30.,30.]]) # [r]
         
         self.data_load()
     
     def data_load(self):
-        with open(join('..','data','affMNIST_28.pickle'),'rb') as f:
+        with open(join('..','data','affMNIST_28r.pickle'),'rb') as f:
             train_dataset, test_dataset = pickle.load(f)
         
         # images.shape = (10000,28,28,1), labels onehot=False

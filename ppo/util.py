@@ -93,7 +93,7 @@ def random_affine_image(img, r_bound=[20,50], sh_bound=[-0.5,0.5], sc_bound=[0.7
 
     # integrated affine transformation
 #     affine_mtx = t1_mtx @ r_mtx @ sh_mtx @ sc_mtx @ t2_mtx @ t3_mtx
-    affine_mtx = t1_mtx @ r_mtx @ sh_mtx @ sc_mtx @ t2_mtx
+    affine_mtx = t1_mtx @ r_mtx @ t2_mtx
 
     # transform image
     aff_theta = affine_mtx[:2,:].flatten()
@@ -110,14 +110,21 @@ def param2theta(param):
     Args:
         param(np.array): [r, sh1, sh2, sc1, sc2].shape = (5,)
     '''
+    # translation : move center of the image to (0,0)
+    t1_mtx = theta2mtx(get_affine_theta('translation', a_bound=[14,14]))
+
+    # rotate, shear, scale, translate
 #     t_mtx = theta2mtx(get_affine_theta('translation', param=param[5:]))
-    sc_mtx = theta2mtx(get_affine_theta('scale', param=param[3:5]))
-    sh_mtx = theta2mtx(get_affine_theta('shear', param=param[1:3]))
+#     sc_mtx = theta2mtx(get_affine_theta('scale', param=param[3:5]))
+#     sh_mtx = theta2mtx(get_affine_theta('shear', param=param[1:3]))
     r_mtx = theta2mtx(get_affine_theta('rotate', param=param[0]))
+
+    # translation : move back (0,0) to be the left-upper corner of the image
+    t2_mtx = theta2mtx(get_affine_theta('translation', a_bound=[-14,-14]))
 
     # integrated affine transformation
 #     affine_mtx = t_mtx @ sc_mtx @ sh_mtx @ r_mtx
-    affine_mtx = sc_mtx @ sh_mtx @ r_mtx
+    affine_mtx = t1_mtx @ r_mtx @ t2_mtx
     theta = affine_mtx[:2,:].flatten()
 
     return theta

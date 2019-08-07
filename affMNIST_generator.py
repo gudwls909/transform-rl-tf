@@ -37,7 +37,7 @@ def main():
 
     # save affMNIST
     print('=== save affine MNIST... ===')
-    with open(join('data','affMNIST_28.pickle'),'wb') as f:
+    with open(join('data','affMNIST_28r.pickle'),'wb') as f:
         pickle.dump(affMNIST_dataset, f)
 
 
