@@ -20,8 +20,8 @@ def main():
 
     # generate affine MNIST
     print('=== generate affine MNIST.... ===')
-    train_inputs = np.zeros([10000,40,40,1])
-    test_inputs = np.zeros([10000,40,40,1])
+    train_inputs = np.zeros([10000,28,28,1])
+    test_inputs = np.zeros([10000,28,28,1])
 
     for i in range(train_inputs.shape[0]):
         img = train_images[i]
@@ -37,7 +37,7 @@ def main():
 
     # save affMNIST
     print('=== save affine MNIST... ===')
-    with open(join('data','affMNIST.pickle'),'wb') as f:
+    with open(join('data','affMNIST_28.pickle'),'wb') as f:
         pickle.dump(affMNIST_dataset, f)
 
 

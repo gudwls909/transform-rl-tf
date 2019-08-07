@@ -11,26 +11,24 @@ class MnistEnvironment(object):
         self.model = model
         self.mc = 20
         self.threshold = 3e-3
-        self._max_episode_steps = 5
+        self._max_episode_steps = 10
 
-        self.state_shape = [40, 40, 1]
-        self.state_size = 1600
-        self.action_size = 7
+        self.state_shape = [28, 28, 1]
+        self.state_size = 784
+        self.action_size = 5
         self.a_bound = np.array([[-30.,30.], 
                                  [-0.5,0.5],
                                  [-0.5,0.5],
                                  [0.8,1.2],
-                                 [0.8,1.2],
-                                 [-5.,5.],
-                                 [-5.,5.]]) # [r, sh1, sh2, sc1, sc2, t1, t2]
+                                 [0.8,1.2]]) # [r, sh1, sh2, sc1, sc2]
         
         self.data_load()
     
     def data_load(self):
-        with open(join('..','data','affMNIST.pickle'),'rb') as f:
+        with open(join('..','data','affMNIST_28.pickle'),'rb') as f:
             train_dataset, test_dataset = pickle.load(f)
         
-        # images.shape = (10000,40,40,1), labels onehot=False
+        # images.shape = (10000,28,28,1), labels onehot=False
         self.train_images, self.train_labels = train_dataset
         self.test_images, self.test_labels = test_dataset
         self.test_images, self.test_labels = self.test_images[:200], self.test_labels[:200]
@@ -38,7 +36,7 @@ class MnistEnvironment(object):
     def reset(self, idx, phase='train'):
         self.phase = phase
         if self.phase == 'train':
-            self.img = self.train_images[idx] # 40*40*1
+            self.img = self.train_images[idx] # 28*28*1
             self.label = self.train_labels[idx]
         else: # self.phase == 'test'
             self.img = self.test_images[idx]
@@ -48,7 +46,7 @@ class MnistEnvironment(object):
         self.sequence = 0
         self.batch_imgs = [self.img] # save the transformed images 
         self.del_thetas = [np.array((1.,0.,0.,0.,1.,0.))] # save theta sequentially
-        img_28size = util.theta2affine_img(self.img, self.del_thetas[-1], resize=(28,28))
+        img_28size = util.theta2affine_img(self.img, self.del_thetas[-1])
         prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
         self.uncs = [util.get_mutual_informations(prob_set)[0]] # save the uncertainty
         self.label_hats = [prob_set.mean(axis=0).argmax(axis=1)[0]] # save predicted label
@@ -67,7 +65,7 @@ class MnistEnvironment(object):
         next_img = util.theta2affine_img(self.img, del_theta)
         
         # calculate uncertainty
-        img_28size = util.theta2affine_img(self.img, del_theta, (28,28))
+        img_28size = util.theta2affine_img(self.img, del_theta)
         prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
         unc_after = util.get_mutual_informations(prob_set)[0]
         unc_before = self.uncs[-1]
