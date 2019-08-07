@@ -3,7 +3,7 @@ import tensorflow as tf
 
 
 class PPO(object):
-    def __init__(self, state_size,  action_size, sess, learning_rate, discount_factor, replay, epsilon, a_bound):
+    def __init__(self, state_size,  action_size, sess, learning_rate, discount_factor, replay, epsilon, a_bound, state_shape):
         self.state_size = state_size
         self.action_size = action_size
         self.sess = sess
@@ -12,6 +12,8 @@ class PPO(object):
         self.replay = replay
         self.eps = epsilon
         self.action_limit = a_bound
+
+        self.state_shape = state_shape
 
         self.state = tf.placeholder(tf.float32, [None, self.state_size])
         self.target = tf.placeholder(tf.float32, [None, 1])
@@ -34,6 +36,7 @@ class PPO(object):
         self.train, self.loss = self.optimizer()
         pass
 
+    '''
     def build_actor(self, scope, trainable):
         actor_hidden_size = 30
         with tf.variable_scope(scope):
@@ -45,10 +48,45 @@ class PPO(object):
             std = tf.add(std, tf.constant(0.5, shape=(self.replay.batch_size, self.action_size)))
             #std = tf.ones([self.replay.batch_size, self.action_size])
             output = tf.contrib.distributions.Normal(loc=m, scale=std)
-            sampled_output = output.sample([self.action_size])
+            sampled_output = tf.clip_by_value(output.sample([self.action_size]), -np.array(self.action_limit), self.action_limit)
+            return output, sampled_output  # [batch_size, action_size]
+            pass
+    '''
+
+    def build_actor(self, scope, trainable):
+        with tf.variable_scope(scope):
+            state = tf.reshape(self.state, [-1, self.state_shape[0], self.state_shape[1], self.state_shape[2]])
+            # Convolutional Layer1
+            conv1 = tf.layers.conv2d(inputs=state, filters=32, kernel_size=[3, 3], padding='SAME',
+                                     activation=tf.nn.relu)
+            # Pooling Layer1
+            pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2, padding="SAME")
+
+            # Convolutional Layer2
+            conv2 = tf.layers.conv2d(inputs=pool1, filters=64, kernel_size=[3, 3], padding='SAME',
+                                     activation=tf.nn.relu)
+            # Pooling Layer2
+            pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2, padding='SAME')
+
+            # Dense Layer4 with Relu
+            flat = tf.reshape(pool2, [-1, self.state_shape[0]*self.state_shape[1]*4])
+            dense3 = tf.layers.dense(inputs=flat, units=30, activation=tf.nn.relu)
+
+            # Logits layer : Final FC Layer5 Shape = (?, 625) -> 10
+            m = tf.layers.dense(dense3, self.action_size, activation=tf.nn.tanh, trainable=trainable)
+            m = tf.multiply(m, tf.cast(tf.transpose(self.action_limit[:,1:]-self.action_limit[:,:1]), tf.float32)) / 2. \
+                + tf.cast(tf.transpose(tf.reduce_mean(self.action_limit, axis=1, keepdims=True)), tf.float32)
+
+#             m = tf.multiply(m, self.action_limit)  # constrained mean value
+            std = 0.5 * tf.layers.dense(dense3, self.action_size, activation=tf.nn.sigmoid, trainable=trainable)
+            std = tf.add(std, tf.constant(0.5, shape=(self.replay.batch_size, self.action_size)))
+            output = tf.contrib.distributions.Normal(loc=m, scale=std)
+            sampled_output = tf.clip_by_value(output.sample([self.action_size]),
+                                              self.action_limit[:,0], self.action_limit[:,1])
             return output, sampled_output  # [batch_size, action_size]
             pass
 
+    '''
     def build_critic(self, scope, trainable):
         with tf.variable_scope(scope):
             critic_hidden_size = 30
@@ -57,6 +95,27 @@ class PPO(object):
             output = tf.layers.dense(hidden2, 1, trainable=trainable)
             return output
             pass
+    '''
+
+    def build_critic(self, scope, trainable):
+        with tf.variable_scope(scope):
+            state = tf.reshape(self.state, [-1, self.state_shape[0], self.state_shape[1], self.state_shape[2]])
+            # Convolutional Layer1
+            conv1 = tf.layers.conv2d(inputs=state, filters=32, kernel_size=[3, 3], padding='SAME',
+                                     activation=tf.nn.relu)
+            # Pooling Layer1
+            pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2, padding="SAME")
+
+            # Convolutional Layer2
+            conv2 = tf.layers.conv2d(inputs=pool1, filters=64, kernel_size=[3, 3], padding='SAME',
+                                     activation=tf.nn.relu)
+            # Pooling Layer2
+            pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2, padding='SAME')
+
+            # Dense Layer4 with Relu
+            flat = tf.reshape(pool2, [-1, self.state_shape[0]*self.state_shape[1]*4])
+            output = tf.layers.dense(inputs=flat, units=1, activation=tf.nn.relu)
+            return output
 
     def optimizer(self):
         policy = tf.clip_by_value(self.actor.prob(self.actions), 1e-10, 1.0)
@@ -80,6 +139,8 @@ class PPO(object):
     def train_network(self):
         states, actions, rewards, next_states, terminals, gaes = self.replay.mini_batch()
 
+        actions = np.arctan(actions)
+
         next_target_v = self.sess.run(self.critic_target, feed_dict={self.state: next_states})
 
         target = []
@@ -91,7 +152,7 @@ class PPO(object):
         target = np.reshape(target, [self.replay.batch_size, 1])
 
         self.sess.run(self.train, feed_dict={self.state: states, self.advantage: gaes, self.actions: actions, self.target: target})
-        print(self.sess.run([0.5 * self.entropy, self.loss], feed_dict={self.state: states, self.advantage: gaes, self.actions: actions, self.target: target}))
+        # print(self.sess.run([0.5 * self.entropy, self.loss], feed_dict={self.state: states, self.advantage: gaes, self.actions: actions, self.target: target}))
         return self.sess.run(self.loss, feed_dict={self.state: states, self.advantage: gaes, self.actions: actions, self.target: target})
         pass
 

@@ -2,6 +2,7 @@ import os
 import tensorflow as tf
 import numpy as np
 import copy
+from math import pi
 
 from environment import MnistEnvironment, Environment
 from replay_memory import ReplayMemory
@@ -15,6 +16,7 @@ class Agent(object):
         self.model = Network(sess, phase='train')  # mnist accurcacy model
         self.env = MnistEnvironment(self.model) 
         self.state_size = self.env.state_size
+        self.state_shape = self.env.state_shape
         self.action_size = self.env.action_size
         self.a_bound = self.env.a_bound
         self.train_size = len(self.env.train_images)
@@ -33,8 +35,9 @@ class Agent(object):
         self.ENV = Environment(self.env, self.state_size, self.action_size)
         self.replay = ReplayMemory(self.state_size, self.batch_size, self.num_actor * self.timesteps)
         self.ppo = PPO(self.state_size, self.action_size, self.sess, self.learning_rate,
-                       self.discount_factor, self.replay, self.epsilon, self.a_bound)
+                       self.discount_factor, self.replay, self.epsilon, self.a_bound, self.state_shape)
 
+        self.continue_train = args.continue_train
         self.save_dir = args.save_dir
         self.render_dir = args.render_dir
         self.play_dir = args.play_dir
@@ -46,12 +49,16 @@ class Agent(object):
         self.env.model.checkpoint_load()
         
         self.saver = tf.train.Saver()
+
+        # continue_train
+        if self.continue_train:
+            self.load()
         pass
 
     def select_action(self, state):
         policy = self.sess.run(self.ppo.sampled_action, feed_dict={self.ppo.state: state})[0][0]
-        policy_clip = np.clip(policy, -self.a_bound, self.a_bound)
-        return policy_clip
+        #policy_tan = np.tan((pi/2) * policy)
+        return policy
         pass
 
     def make_delta(self, memory):
@@ -129,7 +136,7 @@ class Agent(object):
                     print('epoch', e+1, 'iter:', f'{i+1:05d}', ' score:', f'{scores2[-1]:.03f}',
                           ' last 10 mean score', f'{np.mean(scores2[-min(10, len(scores2)):]):.03f}',
                           ' loss', f'{losses2[-1]:.03f}', f'sequence: {self.env.sequence}')
-                if (i+1)%200 == 0:
+                if (i+1)%50 == 0:
                     self.ENV.render_worker(os.path.join(self.render_dir, f'{(i+1):05d}.png'))
                 if (i+1)%1000 == 0:
                     self.save()
@@ -168,6 +175,7 @@ class Agent(object):
         self.saver.save(self.sess, os.path.join(checkpoint_dir, 'trained_agent'))
 
     def load(self):
+        print('=== loading ckeckpoint... ===')
         checkpoint_dir = os.path.join(self.save_dir, 'ckpt')
         self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'trained_agent'))
 
