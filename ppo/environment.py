@@ -15,9 +15,8 @@ class MnistEnvironment(object):
         
         self.state_size = 1600
         self.action_size = 6
-        self.a_bound = [0.558,0.558,0.968,
-                        0.558,0.558,0.968] # arctan(1.2) *2/pi = 0.558, arctan(20) *2/pi = 0.968
-
+        self.a_bound = np.array([])# [r, sh1, sh2, sc1, sc2, t1, t2]
+        
         self.data_load()
     
     def data_load(self):
@@ -28,22 +27,14 @@ class MnistEnvironment(object):
         self.train_images, self.train_labels = train_dataset
         self.test_images, self.test_labels = test_dataset
         self.test_images, self.test_labels = self.test_images[:200], self.test_labels[:200]
-#         mnist = input_data.read_data_sets("/tmp/data/", one_hot=False)
-#         
-#         self.train_images = mnist.train.images.reshape([-1,28,28,1])
-#         self.train_labels = mnist.train.labels
-#         self.test_images = mnist.test.images.reshape([-1,28,28,1])[:200]
-#         self.test_labels = mnist.test.labels[:200]
             
     def reset(self, idx, phase='train'):
         self.phase = phase
         if self.phase == 'train':
             self.img = self.train_images[idx] # 40*40*1
-#             self.img = util.random_degrade(self.img)
             self.label = self.train_labels[idx]
         else: # self.phase == 'test'
             self.img = self.test_images[idx]
-#             self.img = util.random_degrade(self.img)
             self.label = self.test_labels[idx]
 
         # initialize
@@ -60,6 +51,7 @@ class MnistEnvironment(object):
     def step(self, theta):
         # sequence
         self.sequence += 1
+###### function
         self.del_thetas.append(theta)
 
         # next_state
