@@ -74,12 +74,15 @@ class PPO(object):
 
             # Logits layer : Final FC Layer5 Shape = (?, 625) -> 10
             m = tf.layers.dense(dense3, self.action_size, activation=tf.nn.tanh, trainable=trainable)
-            m = tf.multiply(m, self.action_limit)  # constrained mean value
+            m = tf.multiply(m, tf.cast(tf.transpose(self.action_limit[:,1:]-self.action_limit[:,:1]), tf.float32)) / 2. \
+                + tf.cast(tf.transpose(tf.reduce_mean(self.action_limit, axis=1, keepdims=True)), tf.float32)
+
+#             m = tf.multiply(m, self.action_limit)  # constrained mean value
             std = 0.5 * tf.layers.dense(dense3, self.action_size, activation=tf.nn.sigmoid, trainable=trainable)
             std = tf.add(std, tf.constant(0.5, shape=(self.replay.batch_size, self.action_size)))
             output = tf.contrib.distributions.Normal(loc=m, scale=std)
             sampled_output = tf.clip_by_value(output.sample([self.action_size]),
-                                              -np.array(self.action_limit), self.action_limit)
+                                              self.action_limit[:,0], self.action_limit[:,1])
             return output, sampled_output  # [batch_size, action_size]
             pass
 

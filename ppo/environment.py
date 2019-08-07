@@ -15,8 +15,14 @@ class MnistEnvironment(object):
 
         self.state_shape = [40, 40, 1]
         self.state_size = 1600
-        self.action_size = 6
-        self.a_bound = np.array([])# [r, sh1, sh2, sc1, sc2, t1, t2]
+        self.action_size = 7
+        self.a_bound = np.array([[-30.,30.], 
+                                 [-0.5,0.5],
+                                 [-0.5,0.5],
+                                 [0.8,1.2],
+                                 [0.8,1.2],
+                                 [-5.,5.],
+                                 [-5.,5.]]) # [r, sh1, sh2, sc1, sc2, t1, t2]
         
         self.data_load()
     
@@ -50,10 +56,10 @@ class MnistEnvironment(object):
 
         return self.img.flatten()
     
-    def step(self, theta):
+    def step(self, param):
         # sequence
         self.sequence += 1
-###### function
+        theta = util.param2theta(param)
         self.del_thetas.append(theta)
 
         # next_state
