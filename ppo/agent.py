@@ -16,6 +16,7 @@ class Agent(object):
         self.model = Network(sess, phase='train')  # mnist accurcacy model
         self.env = MnistEnvironment(self.model) 
         self.state_size = self.env.state_size
+        self.state_shape = self.env.state_shape
         self.action_size = self.env.action_size
         self.a_bound = self.env.a_bound
         self.train_size = len(self.env.train_images)
@@ -34,7 +35,7 @@ class Agent(object):
         self.ENV = Environment(self.env, self.state_size, self.action_size)
         self.replay = ReplayMemory(self.state_size, self.batch_size, self.num_actor * self.timesteps)
         self.ppo = PPO(self.state_size, self.action_size, self.sess, self.learning_rate,
-                       self.discount_factor, self.replay, self.epsilon, self.a_bound)
+                       self.discount_factor, self.replay, self.epsilon, self.a_bound, self.state_shape)
 
         self.continue_train = args.continue_train
         self.save_dir = args.save_dir
@@ -56,8 +57,8 @@ class Agent(object):
 
     def select_action(self, state):
         policy = self.sess.run(self.ppo.sampled_action, feed_dict={self.ppo.state: state})[0][0]
-        policy_tan = np.tan((pi/2) * policy)
-        return policy_tan
+        #policy_tan = np.tan((pi/2) * policy)
+        return policy
         pass
 
     def make_delta(self, memory):
