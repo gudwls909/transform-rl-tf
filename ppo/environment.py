@@ -12,11 +12,12 @@ class MnistEnvironment(object):
         self.mc = 20
         self.threshold = 3e-3
         self._max_episode_steps = 5
-        
+
+        self.state_shape = [40, 40, 1]
         self.state_size = 1600
         self.action_size = 6
-        self.a_bound = [0.558,0.558,0.968,
-                        0.558,0.558,0.968] # arctan(1.2) *2/pi = 0.558, arctan(20) *2/pi = 0.968
+        self.a_bound = [1.2, 1.2, 20,
+                        1.2, 1.2, 20]  # arctan(1.2) *2/pi = 0.558, arctan(20) *2/pi = 0.968
 
         self.data_load()
     
@@ -54,6 +55,7 @@ class MnistEnvironment(object):
         prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
         self.uncs = [util.get_mutual_informations(prob_set)[0]] # save the uncertainty
         self.label_hats = [prob_set.mean(axis=0).argmax(axis=1)[0]] # save predicted label
+        self.rewards = [0]
 
         return self.img.flatten()
     
@@ -76,6 +78,8 @@ class MnistEnvironment(object):
         self.uncs.append(unc_after)
         self.label_hats.append(prob_set.mean(axis=0).argmax(axis=1)[0])
         self.batch_imgs.append(next_img)
+        rew_prob = prob_set.mean(axis=0)[0][self.label]
+        #rew_prob = np.clip(-np.log(1-rew_prob), a_min=None, a_max=-np.log(self.threshold))
         
         # terminal
         if self.phase == 'train':
@@ -100,7 +104,9 @@ class MnistEnvironment(object):
             reward_before = np.clip(-np.log(unc_before), 
                                     a_min=None, a_max=-np.log(self.threshold))
             reward = reward_after - reward_before - 1.0
-        
+
+        self.rewards.append(reward)
+
         return next_img.flatten(), reward, terminal, 0
         
     def render(self, fname):
@@ -110,9 +116,9 @@ class MnistEnvironment(object):
         self.batch_imgs = util.make_grid(self.batch_imgs, len(self.batch_imgs), 2)
         print(self.uncs,'\n')
         tick_labels =  [str([float(f'{v:.01f}') for v in theta[:3]]) + '\n' + 
-                        str([float(f'{v:.01f}') for v in theta[3:]]) +  f'\n{unc:.04f}\n{label_hat}'
-                       for (theta, unc, label_hat) 
-                       in zip(self.del_thetas, self.uncs, self.label_hats)]
+                        str([float(f'{v:.01f}') for v in theta[3:]]) +  f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
+                       for (theta, unc, label_hat, reward)
+                       in zip(self.del_thetas, self.uncs, self.label_hats, self.rewards)]
         util.save_batch_fig(fname, self.batch_imgs, img_width, tick_labels)
 
     def compare_accuracy(self):
