@@ -6,8 +6,8 @@ import copy
 from math import pi
 
 from environment import MnistEnvironment, Environment
-from replay_memory import ReplayMemory
-from ppo_model import PPO
+from ppo.replay_memory import ReplayMemory
+from ppo.ppo_model import PPO
 from origin_model.mnist_solver import Network
 
 class Agent(object):
