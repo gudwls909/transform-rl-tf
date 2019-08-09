@@ -58,8 +58,8 @@ class PPO(object):
                 + tf.cast(tf.transpose(tf.reduce_mean(self.action_limit, axis=1, keepdims=True)), tf.float32)
 
             output = tf.contrib.distributions.Normal(loc=m, scale=self.std)
-            sampled_output = tf.clip_by_value(output.sample([self.action_size]),
-                                              self.action_limit[:, :1], self.action_limit[:, 1:])
+            sampled_output = tf.clip_by_value(output.sample(),
+                                              self.action_limit[:, 0], self.action_limit[:, 1])
             return output, sampled_output  # [batch_size, action_size]
             pass
 
