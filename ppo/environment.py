@@ -74,9 +74,12 @@ class MnistEnvironment(object):
         #rew_prob = np.clip(-np.log(1-rew_prob), a_min=None, a_max=-np.log(self.threshold))
         
         # terminal
+        success = False
         if self.phase == 'train':
-            if (unc_after < self.threshold and self.label_hats[-1] == self.label) \
-               or self.sequence >= self._max_episode_steps:
+            if unc_after < self.threshold and self.label_hats[-1] == self.label:
+                terminal = True
+                success = True
+            elif self.sequence >= self._max_episode_steps:
                 terminal = True
             else:
                 terminal = False
@@ -97,6 +100,7 @@ class MnistEnvironment(object):
                                     a_min=None, a_max=-np.log(self.threshold))
             reward = reward_after - reward_before - 1.0
 
+        reward += 1. if success else 0
         self.rewards.append(reward)
 
         return next_img.flatten(), reward, terminal, 0

@@ -1,3 +1,4 @@
+
 import os
 import tensorflow as tf
 import numpy as np
@@ -26,6 +27,7 @@ class Agent(object):
         self.discount_factor = args.discount_factor
         self.epsilon = args.epsilon
         self.epochs = args.epochs
+        self._make_std()
 
         self.num_actor = 32  # N
         self.timesteps = 20  # T
@@ -55,11 +57,24 @@ class Agent(object):
             self.load()
         pass
 
-    def select_action(self, state):
-        policy = self.sess.run(self.ppo.sampled_action, feed_dict={self.ppo.state: state})[0][0]
-        #policy_tan = np.tan((pi/2) * policy)
+    def select_action(self, state, phase):
+        if phase == 'train':
+            policy = self.sess.run(self.ppo.sampled_action,
+                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_train})[0][0]
+        elif phase == 'test':
+            policy = self.sess.run(self.ppo.sampled_action,
+                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_test})[0][0]
+        else:
+            raise PhaseError('Phase is not train or test')
         return policy
         pass
+
+    def _make_std(self):
+        # make std for train and test
+        a_range = self.a_bound[:, 1:] - self.a_bound[:, :1]
+        self.std_train = np.ones([self.batch_size, self.action_size])
+        self.std_train = np.multiply(self.std_train, np.transpose(a_range)) / 2.
+        self.std_test = self.std_train * 0.1
 
     def make_delta(self, memory):
         states, rewards, next_states = [], [], []
@@ -107,7 +122,7 @@ class Agent(object):
                         state = self.ENV.new_episode(idx_list[j])
                         for _ in range(self.timesteps):
                             state = np.reshape(state, [1, self.state_size])
-                            action = self.select_action(state)
+                            action = self.select_action(state, 'train')
                             next_state, reward, terminal = self.ENV.act(action)
                             state = state[0]
                             memory.append([state, action, reward, next_state, terminal])
@@ -121,7 +136,7 @@ class Agent(object):
                         self.memory_to_replay(memory)
 
                     for _ in range(self.num_train):
-                        losses.append(self.ppo.train_network())
+                        losses.append(self.ppo.train_network(self.std_train))
 
                     self.ppo.update_target_network()
                     self.replay.clear()
@@ -151,7 +166,7 @@ class Agent(object):
             terminal = False
             score = 0
             while not terminal:
-                action = self.select_action(state)
+                action = self.select_action(state, 'test')
                 next_state, reward, terminal = self.ENV.act(action)
                 next_state = np.reshape(next_state, [1, self.state_size])
                 score += reward
