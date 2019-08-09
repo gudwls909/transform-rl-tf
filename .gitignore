@@ -2,9 +2,6 @@
 *.ipynb_checkpoints*
 *.swp*
 
-data/MNIST_data/
-data/affMNIST.pickle
 data/
 
-ppo/save/
-ppo/*.ipynb
+save/
