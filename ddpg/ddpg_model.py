@@ -12,6 +12,7 @@ class DDPG(object):
         self.replay = replay
         self.discount_factor = discount_factor
         self.action_limit = a_bound
+        self.action_range = self.action_limit[:, 1:] - self.action_limit[:, :1]
 
         self.state = tf.placeholder(tf.float32, [None, self.state_size])
         self.target = tf.placeholder(tf.float32, [None, 1])
@@ -38,7 +39,11 @@ class DDPG(object):
         with tf.variable_scope(scope):
             hidden1 = tf.layers.dense(self.state, actor_hidden_size, activation=tf.nn.relu, name='l1', trainable=trainable)
             a = tf.layers.dense(hidden1, self.action_size, activation=tf.nn.tanh, name='a', trainable=trainable)
-            return a * self.action_limit
+
+            a = tf.multiply(a, tf.cast(tf.transpose(self.action_range), tf.float32)) / 2. \
+                + tf.cast(tf.transpose(tf.reduce_mean(self.action_limit, axis=1, keepdims=True)), tf.float32)
+
+            return a
 
     def build_critic(self, scope, trainable, a):
         with tf.variable_scope(scope):
