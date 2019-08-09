@@ -60,10 +60,10 @@ class Agent(object):
     def select_action(self, state, phase):
         if phase == 'train':
             policy = self.sess.run(self.ppo.sampled_action,
-                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_train})[0][0]
+                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_train})[0]
         elif phase == 'test':
             policy = self.sess.run(self.ppo.sampled_action,
-                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_test})[0][0]
+                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_test})[0]
         else:
             raise PhaseError('Phase is not train or test')
         return policy
