@@ -46,6 +46,7 @@ class MnistEnvironment(object):
         self.sequence = 0
         self.batch_imgs = [self.img] # save the transformed images 
         self.del_thetas = [np.array((1.,0.,0.,0.,1.,0.))] # save theta sequentially
+        self.del_params = [np.array((0.,0.,0.,1.,1.))]
         img_28size = util.theta2affine_img(self.img, self.del_thetas[-1])
         prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
         self.uncs = [util.get_mutual_informations(prob_set)[0]] # save the uncertainty
@@ -59,6 +60,7 @@ class MnistEnvironment(object):
         self.sequence += 1
         theta = util.param2theta(param)
         self.del_thetas.append(theta)
+        self.del_params.append(param)
 
         # next_state
         del_theta = util.integrate_thetas(self.del_thetas)
@@ -115,10 +117,15 @@ class MnistEnvironment(object):
         
         self.batch_imgs = util.make_grid(self.batch_imgs, len(self.batch_imgs), 2)
         print(self.uncs,'\n')
-        tick_labels =  [str([float(f'{v:.01f}') for v in theta[:3]]) + '\n' + 
-                        str([float(f'{v:.01f}') for v in theta[3:]]) +  f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
-                       for (theta, unc, label_hat, reward)
-                       in zip(self.del_thetas, self.uncs, self.label_hats, self.rewards)]
+        if self.action_size >= 3: 
+            tick_labels =  [str([float(f'{p:.01f}') for p in param[:3]]) + '\n' + 
+                            str([float(f'{p:.01f}') for p in param[3:]]) +  f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
+                           for (param, unc, label_hat, reward)
+                           in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+        else:
+            tick_labels =  [str([float(f'{p:.01f}') for p in param]) +  f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
+                           for (param, unc, label_hat, reward)
+                           in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
         util.save_batch_fig(fname, self.batch_imgs, img_width, tick_labels)
 
     def compare_accuracy(self):
