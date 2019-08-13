@@ -11,10 +11,10 @@ from ddpg.agent import Agent as Agent_ddpg
 parser = argparse.ArgumentParser(description="Pendulum")
 parser.add_argument('--algorithm', default='ppo', type=str)
 parser.add_argument('--gpu_number', default='0', type=str)
-parser.add_argument('--learning_rate', default=0.0001, type=float)
+parser.add_argument('--learning_rate', default=0.0003, type=float)
 parser.add_argument('--batch_size', default=32, type=int)
-parser.add_argument('--discount_factor', default=0.95, type=float)
-parser.add_argument('--continue_train', default=False, type=bool)
+parser.add_argument('--discount_factor', default=0.99, type=float)
+parser.add_argument('--continue_train', default=False, action='store_true')
 parser.add_argument('--epochs', default=1, type=int)
 parser.add_argument('--epsilon', default=0.2, type=float)
 parser.add_argument('--save_dir', default='ex', type=str)
@@ -37,11 +37,10 @@ config.log_device_placement = False
 config.gpu_options.allow_growth = True
 
 
-
 if __name__ == '__main__':
     # 학습 or 테스트
     with tf.Session(config=config) as sess:
-        Agent = Agent_ppo if args.algorithm=='ppo' else Agent_ddpg
+        Agent = Agent_ppo if args.algorithm == 'ppo' else Agent_ddpg
         agent = Agent(args, sess)
 
         agent.train()

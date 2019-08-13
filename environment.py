@@ -16,7 +16,7 @@ class MnistEnvironment(object):
         self.state_shape = [28, 28, 1]
         self.state_size = 784
         self.action_size = 1
-        self.a_bound = np.array([[-30.,30.]]) # [r]
+        self.a_bound = np.array([[-30., 30.]])  # [r]
         
         self.data_load()
     
@@ -73,8 +73,10 @@ class MnistEnvironment(object):
         self.label_hats.append(prob_set.mean(axis=0).argmax(axis=1)[0])
         self.batch_imgs.append(next_img)
         rew_prob = prob_set.mean(axis=0)[0][self.label]
-        #rew_prob = np.clip(-np.log(1-rew_prob), a_min=None, a_max=-np.log(self.threshold))
-        
+        #log_rew_prob = np.clip(-np.log(1-rew_prob), a_min=None, a_max=-np.log(self.threshold))
+        pred_prob = prob_set.mean(axis=0)[0][self.label_hats[-1]]
+        #log_pred_prob = np.clip(-np.log(1-pred_prob), a_min=None, a_max=-np.log(self.threshold))
+
         # terminal
         success = False
         if self.phase == 'train':
@@ -96,11 +98,12 @@ class MnistEnvironment(object):
             reward = -5
             terminal = True
         else:
-            reward_after = np.clip(-np.log(unc_after), 
-                                   a_min=None, a_max=-np.log(self.threshold))
-            reward_before = np.clip(-np.log(unc_before), 
-                                    a_min=None, a_max=-np.log(self.threshold))
-            reward = reward_after - reward_before - 1.0
+            #reward_after = np.clip(-np.log(unc_after),
+            #                       a_min=None, a_max=-np.log(self.threshold))
+            #reward_before = np.clip(-np.log(unc_before),
+            #                        a_min=None, a_max=-np.log(self.threshold))
+            #reward = reward_after - reward_before - 1.0 if rew_prob >= pred_prob else reward_before - reward_after - 1.0
+            reward = self._make_reward()
 
         reward += 1. if success else 0
         self.rewards.append(reward)
@@ -128,6 +131,49 @@ class MnistEnvironment(object):
 
     def compare_accuracy(self):
         return self.label_hats[0] == self.label, self.label_hats[-1] == self.label
+
+    def _make_reward(self):
+        unc_before = self.uncs[-2]
+        unc_after = self.uncs[-1]
+        pred_before = self.label_hats[-2] == self.label
+        pred_after = self.label_hats[-1] == self.label
+        pred = (pred_before, pred_after)
+        rew_before = np.clip(-np.log(unc_before), a_min=None, a_max=-np.log(self.threshold))
+        rew_after = np.clip(-np.log(unc_after), a_min=None, a_max=-np.log(self.threshold))
+
+        reward = rew_after - rew_before
+
+        if np.abs(unc_after - unc_before) < 0.001:
+            if pred == (0, 0):
+                reward = reward
+            elif pred == (0, 1):
+                reward = reward + 1
+            elif pred == (1, 0):
+                reward = reward - 1
+            elif pred == (1, 1):
+                reward = reward
+        else:
+            if unc_before < unc_after:
+                if pred == (0, 0):
+                    reward = -reward
+                elif pred == (0, 1):
+                    reward = -reward + 1
+                elif pred == (1, 0):
+                    reward = reward - 1
+                elif pred == (1, 1):
+                    reward = reward
+            else:
+                if pred == (0, 0):
+                    reward = -reward - 1
+                elif pred == (0, 1):
+                    reward = reward + 2
+                elif pred == (1, 0):
+                    reward = -reward - 2
+                elif pred == (1, 1):
+                    reward = reward
+
+        reward -= 1
+        return reward
 
 
 class Environment(object):

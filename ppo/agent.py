@@ -10,6 +10,7 @@ from ppo.replay_memory import ReplayMemory
 from ppo.ppo_model import PPO
 from origin_model.mnist_solver import Network
 
+
 class Agent(object):
     def __init__(self, args, sess):
         # CartPole 환경
@@ -32,7 +33,7 @@ class Agent(object):
         self.num_actor = 32  # N
         self.timesteps = 20  # T
         self.gae_parameter = 0.95  # lambda
-        self.num_train = 8  # K
+        self.num_train = 16  # K
 
         self.ENV = Environment(self.env, self.state_size, self.action_size)
         self.replay = ReplayMemory(self.state_size, self.batch_size, self.num_actor * self.timesteps)
@@ -57,6 +58,12 @@ class Agent(object):
             self.load()
         pass
 
+    def _policy_action_bound(self, policy):
+        a_range = (self.a_bound[:, 1] - self.a_bound[:, 0]) / 2.
+        a_mean = (self.a_bound[:, 0] + self.a_bound[:, 1]) / 2.
+
+        return policy * np.transpose(a_range) + np.transpose(a_mean)
+
     def select_action(self, state, phase):
         if phase == 'train':
             policy = self.sess.run(self.ppo.sampled_action,
@@ -66,16 +73,28 @@ class Agent(object):
                                    feed_dict={self.ppo.state: state, self.ppo.std: self.std_test})[0]
         else:
             raise PhaseError('Phase is not train or test')
+        policy = self._policy_action_bound(policy)
         return policy
+        pass
+
+    def _get_old_policy(self, state, action):
+        a_range = (self.a_bound[:, 1] - self.a_bound[:, 0]) / 2.
+        a_mean = (self.a_bound[:, 0] + self.a_bound[:, 1]) / 2.
+
+        action = (action - a_mean) / a_range
+        old_policy = self.sess.run(self.ppo.actor.log_prob(action - self.ppo.actor_output),
+                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_train})[0]
+        return old_policy
         pass
 
     def _make_std(self):
         # make std for train and test
-        a_range = self.a_bound[:, 1:] - self.a_bound[:, :1]
+        #a_range = self.a_bound[:, 1:] - self.a_bound[:, :1]
         self.std_train = np.ones([self.batch_size, self.action_size])
-        self.std_train = np.multiply(self.std_train, np.transpose(a_range)) / 2.
-        self.std_test = self.std_train * 0.1
+        #self.std_train = np.multiply(self.std_train, np.transpose(a_range)) / 2.
+        self.std_test = self.std_train
 
+    '''
     def make_delta(self, memory):
         states, rewards, next_states = [], [], []
         for i in range(len(memory)):
@@ -96,21 +115,51 @@ class Agent(object):
             # memory[t].append(gae[t])
         # memory[len(gae)-1].append(gae[len(gae)-1])
 
+        # normalize gae
         gae = np.array(gae).astype(np.float32)
         gae = (gae - gae.mean()) / (gae.std() + 1e-10)
         for t in range(len(gae)):
             memory[t].append(gae[t])
         pass
+    '''
+
+    def make_gae(self, memory):
+        rewards = [m[2] for m in memory]
+        masks = [m[4] for m in memory]  # terminals
+        values = [m[6] for m in memory]
+        returns = np.zeros_like(rewards)
+        advants = np.zeros_like(rewards)
+
+        running_returns = 0
+        previous_value = 0
+        running_advants = 0
+
+        for t in reversed(range(0, len(rewards))):
+            running_returns = rewards[t] + self.discount_factor * running_returns * masks[t]
+            running_tderror = rewards[t] + self.discount_factor * previous_value * masks[t] - \
+                              values[t]
+            running_advants = running_tderror + self.discount_factor * self.gae_parameter * \
+                              running_advants * masks[t]
+
+            returns[t] = running_returns
+            previous_value = values[t]
+            advants[t] = running_advants
+
+        if len(rewards) > 1:
+            advants = (advants - advants.mean()) / advants.std()
+        for t in range(len(rewards)):
+            memory[t].append(advants[t])
+            memory[t].append(returns[t])
+        pass
 
     def memory_to_replay(self, memory):
         self.make_gae(memory)
         for i in range(len(memory)):
-            self.replay.add(memory[i][0], memory[i][1], memory[i][2], memory[i][3], memory[i][4], memory[i][5])
+            self.replay.add(memory[i])
         pass
 
     def train(self):
         scores, losses, scores2, losses2, idx_list = [], [], [], [], []
-        self.ppo.update_target_network()
         for e in range(self.epochs):
             for i, idx in enumerate(np.random.permutation(self.train_size)):
                 idx_list.append(idx)
@@ -124,8 +173,11 @@ class Agent(object):
                             state = np.reshape(state, [1, self.state_size])
                             action = self.select_action(state, 'train')
                             next_state, reward, terminal = self.ENV.act(action)
+                            old_policy = self._get_old_policy(state, action)
+                            old_value = self.sess.run(self.ppo.critic,
+                                                      feed_dict={self.ppo.state: state})[0]
                             state = state[0]
-                            memory.append([state, action, reward, next_state, terminal])
+                            memory.append([state, action, reward, next_state, terminal, old_policy, old_value])
                             score += reward
                             state = next_state
 
@@ -138,10 +190,9 @@ class Agent(object):
                     for _ in range(self.num_train):
                         losses.append(self.ppo.train_network(self.std_train))
 
-                    self.ppo.update_target_network()
                     self.replay.clear()
                     scores2.append(np.mean(scores))
-                    losses2.append(np.mean(losses))
+                    losses2.append(np.mean(losses, axis=0))
 
                     losses.clear()
                     scores.clear()
@@ -149,9 +200,9 @@ class Agent(object):
 
                 if (i+1)%50 == 0 and (i+1) >= self.num_actor:
                     print('epoch', e+1, 'iter:', f'{i+1:05d}', ' score:', f'{scores2[-1]:.03f}',
-                          ' last 10 mean score', f'{np.mean(scores2[-min(10, len(scores2)):]):.03f}',
-                          ' loss', f'{losses2[-1]:.03f}', f'sequence: {self.env.sequence}')
-                if (i+1)%50 == 0:
+                          ' actor loss', f'{losses2[-1][0]:.03f}', ' critic loss', f'{losses2[-1][1]:.03f}',
+                          f'sequence: {self.env.sequence}')
+                if (i+1)%200 == 0:
                     self.ENV.render_worker(os.path.join(self.render_dir, f'{(i+1):05d}.png'))
                 if (i+1)%1000 == 0:
                     self.save()
