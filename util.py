@@ -23,7 +23,7 @@ def theta2mtx(theta):
         affine_mtx(np.array): size=(3,3)
     '''
     affine_mtx = np.eye(3)
-    affine_mtx[:2,:] = theta.reshape([2,3])
+    affine_mtx[:2, :] = theta.reshape([2, 3])
     return affine_mtx
 
 
@@ -70,15 +70,15 @@ def get_affine_theta(method, param=None, a_bound=None):
     return theta
 
 
-def random_affine_image(img, r_bound=[20,50], sh_bound=[-0.5,0.5], sc_bound=[0.7, 1.2], t_bound=[-12,0]):
-    '''
+def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[-0.5, 0.5], sc_bound=[0.8, 1.2], t_bound=[-12, 0]):
+    """
     Args:
         img(np.array): HWC format
     Returns:
         img(np.array): HWC format
-    '''
+    """
     # translation : move center of the image to (0,0)
-    t1_mtx = theta2mtx(get_affine_theta('translation', a_bound=[img.shape[1]/2,img.shape[0]/2]))
+    t1_mtx = theta2mtx(get_affine_theta('translation', a_bound=[img.shape[1]/2, img.shape[0]/2]))
 
     # rotate, shear, scale
     r_mtx = theta2mtx(get_affine_theta('rotate', a_bound=r_bound))
@@ -86,17 +86,27 @@ def random_affine_image(img, r_bound=[20,50], sh_bound=[-0.5,0.5], sc_bound=[0.7
     sc_mtx = theta2mtx(get_affine_theta('scale', a_bound=sc_bound))
 
     # translation : move back (0,0) to be the left-upper corner of the image
-    t2_mtx = theta2mtx(get_affine_theta('translation', a_bound=[-img.shape[1]/2,-img.shape[0]/2]))
+    t2_mtx = theta2mtx(get_affine_theta('translation', a_bound=[-img.shape[1]/2, -img.shape[0]/2]))
 
     # translation : move mnist in (40,40) size black image
     t3_mtx = theta2mtx(get_affine_theta('translation', a_bound=t_bound))
 
     # integrated affine transformation
-#     affine_mtx = t1_mtx @ r_mtx @ sh_mtx @ sc_mtx @ t2_mtx @ t3_mtx
-    affine_mtx = t1_mtx @ r_mtx @ t2_mtx
+    if env_type == 'r':
+        affine_mtx = t1_mtx @ r_mtx @ t2_mtx
+    elif env_type == 'rsc':
+        affine_mtx = t1_mtx @ r_mtx @ sc_mtx @ t2_mtx
+    elif env_type == 'rsh':
+        affine_mtx = t1_mtx @ r_mtx @ sh_mtx @ t2_mtx
+    elif env_type == 'rss':
+        affine_mtx = t1_mtx @ r_mtx @ sh_mtx @ sc_mtx @ t2_mtx
+    elif env_type == 'rsst':
+        affine_mtx = t1_mtx @ r_mtx @ sh_mtx @ sc_mtx @ t2_mtx @ t3_mtx
+    else:
+        raise TypeError('env type error')
 
     # transform image
-    aff_theta = affine_mtx[:2,:].flatten()
+    aff_theta = affine_mtx[:2, :].flatten()
     pil_img = np2pil(img)
 #     pil_img = pil_img.transform((40,40), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
     pil_img = pil_img.transform((28,28), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
@@ -105,39 +115,43 @@ def random_affine_image(img, r_bound=[20,50], sh_bound=[-0.5,0.5], sc_bound=[0.7
     return img
 
 
-def param2theta(param):
-    '''
+def param2theta(param, env):
+    """
     Args:
         param(np.array): [r, sh1, sh2, sc1, sc2].shape = (5,)
-    '''
+    """
     # translation : move center of the image to (0,0)
-    t1_mtx = theta2mtx(get_affine_theta('translation', a_bound=[14,14]))
+    t1_mtx = theta2mtx(get_affine_theta('translation', a_bound=[14, 14]))
 
     # rotate, shear, scale, translate
-#     t_mtx = theta2mtx(get_affine_theta('translation', param=param[5:]))
-#     sc_mtx = theta2mtx(get_affine_theta('scale', param=param[3:5]))
-#     sh_mtx = theta2mtx(get_affine_theta('shear', param=param[1:3]))
+    t_mtx = theta2mtx(get_affine_theta('translation', param=param[5:])) if env == 'rsst' else np.eye(3)
+    if env == 'rss':
+        sc_mtx = theta2mtx(get_affine_theta('scale', param=param[3:5]))
+    elif env == 'rsc':
+        sc_mtx = theta2mtx(get_affine_theta('scale', param=param[1:3]))
+    else:
+        sc_mtx = np.eye(3)
+    sh_mtx = theta2mtx(get_affine_theta('shear', param=param[1:3])) if env == 'rsh' or env == 'rss' else np.eye(3)
     r_mtx = theta2mtx(get_affine_theta('rotate', param=param[0]))
 
     # translation : move back (0,0) to be the left-upper corner of the image
-    t2_mtx = theta2mtx(get_affine_theta('translation', a_bound=[-14,-14]))
+    t2_mtx = theta2mtx(get_affine_theta('translation', a_bound=[-14, -14]))
 
     # integrated affine transformation
-#     affine_mtx = t_mtx @ sc_mtx @ sh_mtx @ r_mtx
-    affine_mtx = t1_mtx @ r_mtx @ t2_mtx
-    theta = affine_mtx[:2,:].flatten()
+    affine_mtx = t1_mtx @ t_mtx @ sc_mtx @ sh_mtx @ r_mtx @ t2_mtx
+    theta = affine_mtx[:2, :].flatten()
 
     return theta
     
 
 def theta2affine_img(img, theta, resize=None):
-    ''' 
+    """
     Args:
         img(np.array): HWC format
         theta(np.array): 6 parameters for affine transformation, size=(6,)
     Returns:
         img(np.array): HWC format with size (40,40,1) if resize=None
-    '''
+    """
     pil_img = np2pil(img)
     pil_img = pil_img.transform(pil_img.size, Image.AFFINE, theta, resample=Image.BICUBIC)
     if resize is not None:
@@ -148,10 +162,10 @@ def theta2affine_img(img, theta, resize=None):
 
 def integrate_thetas(thetas):
     mtxs = [theta2mtx(theta) for theta in thetas]
-    int_mtx = theta2mtx(np.array((1,0,0,0,1,0)))
+    int_mtx = theta2mtx(np.array((1, 0, 0, 0, 1, 0)))
     for mtx in mtxs:
         int_mtx = int_mtx @ mtx
-    int_theta = int_mtx[:2,:].flatten()
+    int_theta = int_mtx[:2, :].flatten()
     return int_theta
     
 
