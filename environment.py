@@ -10,7 +10,7 @@ class MnistEnvironment(object):
     def __init__(self, model):
         self.model = model
         self.mc = 20
-        self.threshold = 3e-3
+        self.threshold = 6e-3
         self._max_episode_steps = 10
 
         self.state_shape = [28, 28, 1]

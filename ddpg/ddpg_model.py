@@ -40,8 +40,8 @@ class DDPG(object):
             hidden1 = tf.layers.dense(self.state, actor_hidden_size, activation=tf.nn.relu, name='l1', trainable=trainable)
             a = tf.layers.dense(hidden1, self.action_size, activation=tf.nn.tanh, name='a', trainable=trainable)
 
-            a = tf.multiply(a, tf.cast(tf.transpose(self.action_range), tf.float32)) / 2. \
-                + tf.cast(tf.transpose(tf.reduce_mean(self.action_limit, axis=1, keepdims=True)), tf.float32)
+#             a = tf.multiply(a, tf.cast(tf.transpose(self.action_range), tf.float32)) / 2. \
+#                 + tf.cast(tf.transpose(tf.reduce_mean(self.action_limit, axis=1, keepdims=True)), tf.float32)
 
             return a
 

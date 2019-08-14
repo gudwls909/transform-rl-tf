@@ -31,6 +31,7 @@ class Agent(object):
         self.save_dir = args.save_dir
         self.render_dir = args.render_dir
         self.play_dir = args.play_dir
+        self.action_noise_prev = np.zeros(self.action_size)
 
         # initialize
         sess.run(tf.global_variables_initializer())  # tensorflow graph가 다 만들어지고 난 후에 해야됨
@@ -56,27 +57,49 @@ class Agent(object):
         pass
     '''
 
-    def ou_function(self, mu, theta, sigma):
-        x = np.ones(self.action_size) * mu
-        dx = theta * (mu - x) + sigma * np.random.randn(self.action_size)
-        return x + dx
+    def _policy_action_bound(self, policy):
+        a_range = (self.a_bound[:,1] - self.a_bound[:,0]) / 2.
+        a_mean = (self.a_bound[:,0] + self.a_bound[:,1]) / 2.
+
+        return policy * np.transpose(a_range) + np.transpose(a_mean)
+
+    def ou_function(self, mu, theta, sigma, dt=0.01):
+        action_noise = self.action_noise_prev + theta * (mu - self.action_noise_prev) * dt + \
+                       sigma * np.sqrt(dt) * np.random.randn(self.action_size)
+        self.action_noise_prev = action_noise
+        return action_noise
+
+    def gaussian_function(self, mu, sigma):
+        action_noise = np.random.normal(mu, sigma, self.action_size)
+        return action_noise
 
     def noise_select_action(self, state):
         action = self.sess.run(self.ddpg.actor, {self.ddpg.state: state})[0]
-        noise = self.epsilon * self.ou_function(0, 0.15, 0.25)
-        return action + noise
+        noise = self.gaussian_function(0,1)
+        noise = self.epsilon * noise
+#         noise = self.epsilon * self.ou_function(0, 0.15, 0.2)
+
+        action = self._policy_action_bound(action + noise)
+        return np.clip(action, self.a_bound[:,0], self.a_bound[:,1])
 
     def select_action(self, state):
-        return self.sess.run(self.ddpg.actor, {self.ddpg.state: state})[0]
+        action = self.sess.run(self.ddpg.actor, {self.ddpg.state: state})[0]
+        return self._policy_action_bound(action)
 
     def train(self):
         scores, episodes = [], []
+        count = 0
         for e in range(self.epochs):
             for i, idx in enumerate(np.random.permutation(self.train_size)):
+                count += 1
                 terminal = False
                 score = 0
                 state = self.ENV.new_episode(idx)
                 state = np.reshape(state, [1, self.state_size])
+
+                # exploration decay
+                if count%5000 == 0:
+                    self.epsilon *= 0.7 # 0.7**10 = 0.02
 
                 while not terminal:
                     action = self.noise_select_action(state)
@@ -94,11 +117,11 @@ class Agent(object):
                     if terminal:
                         scores.append(score)
                         episodes.append(e)
-                        if (i+1)%50 == 0:
+                        if count%50 == 0:
                             print('epoch', e+1, 'iter:', f'{i+1:05d}', ' score:', f'{score:.03f}', ' last 10 mean score', f'{np.mean(scores[-min(10, len(scores)):]):.03f}', f'sequence: {self.env.sequence}')
-                        if (i+1)%50 == 0:
-                            self.ENV.render_worker(os.path.join(self.render_dir, f'{(i+1):05d}.png'))
-                        if (i+1)%1000 == 0:
+                        if count%50 == 0:
+                            self.ENV.render_worker(os.path.join(self.render_dir, f'{count:05d}.png'))
+                        if count%1000 == 0:
                             self.save()
 
         pass
