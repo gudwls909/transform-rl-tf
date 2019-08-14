@@ -10,13 +10,15 @@ from ppo.replay_memory import ReplayMemory
 from ppo.ppo_model import PPO
 from origin_model.mnist_solver import Network
 
+import time
+from scipy.stats import norm
 
 class Agent(object):
     def __init__(self, args, sess):
         # CartPole 환경
         self.sess = sess
-        self.model = Network(sess, phase='train')  # mnist accurcacy model
-        self.env = MnistEnvironment(self.model) 
+        self.model = Network(sess, phase='train')  # pre-trained mnist accuracy model
+        self.env = MnistEnvironment(self.model, args.env)
         self.state_size = self.env.state_size
         self.state_shape = self.env.state_shape
         self.action_size = self.env.action_size
@@ -65,9 +67,9 @@ class Agent(object):
         return policy * np.transpose(a_range) + np.transpose(a_mean)
 
     def select_action(self, state, phase):
-        if phase == 'train':
+        if phase == 'step':
             policy = self.sess.run(self.ppo.sampled_action,
-                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_train})[0]
+                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_step})[0]
         elif phase == 'test':
             policy = self.sess.run(self.ppo.sampled_action,
                                    feed_dict={self.ppo.state: state, self.ppo.std: self.std_test})[0]
@@ -82,17 +84,21 @@ class Agent(object):
         a_mean = (self.a_bound[:, 0] + self.a_bound[:, 1]) / 2.
 
         action = (action - a_mean) / a_range
-        old_policy = self.sess.run(self.ppo.actor.log_prob(action - self.ppo.actor_output),
-                                   feed_dict={self.ppo.state: state, self.ppo.std: self.std_train})[0]
+        actor_output = self.sess.run(self.ppo.actor,
+                                     feed_dict={self.ppo.state: state, self.ppo.std: self.std_step})[0]
+        #old_policy = self.sess.run(self.ppo.normal.log_prob(action - actor_output),
+        #                           feed_dict={self.ppo.state: state, self.ppo.std: self.std_step})[0]
+        old_policy = norm.logpdf(action - actor_output, loc=0, scale=self.std_step[0])
         return old_policy
         pass
 
     def _make_std(self):
-        # make std for train and test
+        # make std for step, train and test
         #a_range = self.a_bound[:, 1:] - self.a_bound[:, :1]
+        self.std_step = np.ones([1, self.action_size])
         self.std_train = np.ones([self.batch_size, self.action_size])
         #self.std_train = np.multiply(self.std_train, np.transpose(a_range)) / 2.
-        self.std_test = self.std_train
+        self.std_test = self.std_train / 5.
 
     '''
     def make_delta(self, memory):
@@ -171,7 +177,7 @@ class Agent(object):
                         state = self.ENV.new_episode(idx_list[j])
                         for _ in range(self.timesteps):
                             state = np.reshape(state, [1, self.state_size])
-                            action = self.select_action(state, 'train')
+                            action = self.select_action(state, 'step')
                             next_state, reward, terminal = self.ENV.act(action)
                             old_policy = self._get_old_policy(state, action)
                             old_value = self.sess.run(self.ppo.critic,
@@ -202,15 +208,15 @@ class Agent(object):
                     print('epoch', e+1, 'iter:', f'{i+1:05d}', ' score:', f'{scores2[-1]:.03f}',
                           ' actor loss', f'{losses2[-1][0]:.03f}', ' critic loss', f'{losses2[-1][1]:.03f}',
                           f'sequence: {self.env.sequence}')
-                if (i+1)%200 == 0:
+                if (i+1)%200 == 0 and (i+1) >= self.num_actor:
                     self.ENV.render_worker(os.path.join(self.render_dir, f'{(i+1):05d}.png'))
-                if (i+1)%1000 == 0:
+                if (i+1)%500 == 0:
                     self.save()
         pass
 
     def play(self):
         cor_before_lst, cor_after_lst = [], []
-        for idx in range(self.test_size): 
+        for idx in range(self.test_size):
             state = self.ENV.new_episode(idx, phase='test')
             state = np.reshape(state, [1, self.state_size])
     
@@ -228,8 +234,9 @@ class Agent(object):
                     cor_before_lst.append(cor_before)
                     cor_after_lst.append(cor_after)
 
-                    self.ENV.render_worker(os.path.join(self.play_dir, f'{(idx+1):04d}.png'))
-                    print(f'{(idx+1):04d} image score: {score}\n')
+                    if (idx+1)%100 == 0:
+                        self.ENV.render_worker(os.path.join(self.play_dir, f'{(idx+1):04d}.png'))
+                        print(f'{(idx+1):04d} image score: {score}\n')
         print('====== NUMBER OF CORRECTION =======')
         print(f'before: {np.sum(cor_before_lst)}, after: {np.sum(cor_after_lst)}')
     pass

@@ -15,6 +15,8 @@ parser.add_argument('--learning_rate', default=0.0003, type=float)
 parser.add_argument('--batch_size', default=32, type=int)
 parser.add_argument('--discount_factor', default=0.99, type=float)
 parser.add_argument('--continue_train', default=False, action='store_true')
+parser.add_argument('--test', default=False, action='store_true')
+parser.add_argument('--env', default='r', type=str)
 parser.add_argument('--epochs', default=1, type=int)
 parser.add_argument('--epsilon', default=0.2, type=float)
 parser.add_argument('--save_dir', default='ex', type=str)
@@ -43,8 +45,9 @@ if __name__ == '__main__':
         Agent = Agent_ppo if args.algorithm == 'ppo' else Agent_ddpg
         agent = Agent(args, sess)
 
-        agent.train()
-        agent.save()
+        if not args.test:
+            agent.train()
+            agent.save()
         
         agent.load()
         agent.play()

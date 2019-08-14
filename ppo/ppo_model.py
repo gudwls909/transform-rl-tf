@@ -21,12 +21,13 @@ class PPO(object):
         self.advantage = tf.placeholder(tf.float32, [None, 1])
         self.actions = tf.placeholder(tf.float32, [None, self.action_size])
         self.std = tf.placeholder(tf.float32, [None, self.action_size])
-        self.old_policy = tf.placeholder(tf.float32, [None, 1])
+        self.old_policy = tf.placeholder(tf.float32, [None, self.action_size])
         self.old_value = tf.placeholder(tf.float32, [None, 1])
         self.returns = tf.placeholder(tf.float32, [None, 1])
 
+        self.normal = tf.contrib.distributions.Normal(loc=0., scale=self.std)
         #self.actor_target, _ = self.build_actor('actor_target', False)
-        self.actor, self.sampled_action, self.actor_output = self.build_actor('actor_eval', True)
+        self.actor, self.sampled_action = self.build_actor('actor_eval', True)
         #self.critic_target = self.build_critic('critic_target', False)
         self.critic = self.build_critic('critic_eval', True)
 
@@ -37,8 +38,6 @@ class PPO(object):
 
         #self.replace = [tf.assign(t, e) for t, e in zip(self.actor_tmp_vars + self.critic_tmp_vars,
         #                                                self.actor_vars + self.critic_vars)]
-        #self.replace_to_tmp = [tf.assign(t, e) for t, e in zip(self.actor_target_vars + self.critic_target_vars,
-        #                                                       self.actor_tmp_vars + self.critic_tmp_vars)]
 
         self.train, self.loss = self.optimizer()
         pass
@@ -55,18 +54,17 @@ class PPO(object):
             flat = tf.reshape(pool2, [-1, self.state_shape[0]*self.state_shape[1]*4])
             dense3 = tf.layers.dense(inputs=flat, units=32, activation=tf.nn.relu, trainable=trainable, name='test')
 
-            with tf.variable_scope('test', reuse=tf.AUTO_REUSE):
-                self.w = tf.get_variable('kernel')
+            #with tf.variable_scope('test', reuse=tf.AUTO_REUSE):
+            #    self.w = tf.get_variable('kernel')
 
             # output action mean constrained by action limit
             m = tf.layers.dense(dense3, self.action_size, activation=tf.nn.tanh, trainable=trainable)
             #m = tf.multiply(m, tf.cast(tf.transpose(self.action_range), tf.float32)) \
             #    + tf.cast(tf.transpose(tf.reduce_mean(self.action_limit, axis=1, keepdims=True)), tf.float32)
 
-            output = tf.contrib.distributions.Normal(loc=0., scale=self.std)
             #sampled_output = tf.clip_by_value(output.sample(), -1, 1)
-            sampled_output = m + output.sample()
-            return output, sampled_output, m  # [batch_size, action_size]
+            sampled_output = m + self.normal.sample()
+            return m, sampled_output  # [batch_size, action_size]
             pass
 
     def build_critic(self, scope, trainable):
@@ -81,15 +79,15 @@ class PPO(object):
             flat = tf.reshape(pool2, [-1, self.state_shape[0]*self.state_shape[1]*4])
             dense1 = tf.layers.dense(inputs=flat, units=32, activation=tf.nn.relu, trainable=trainable, name='test2')
 
-            with tf.variable_scope('test2', reuse=True):
-                self.w2 = tf.get_variable('kernel')
+            #with tf.variable_scope('test2', reuse=True):
+            #    self.w2 = tf.get_variable('kernel')
 
             output = tf.layers.dense(inputs=dense1, units=1, trainable=trainable)
 
             return output
 
     def optimizer(self):
-        policy = self.actor.log_prob(self.actions - self.actor_output)
+        policy = self.normal.log_prob(self.actions - self.actor)
         #old_policy = self.actor_target.log_prob(self.actions)
         self.policy = policy
 
@@ -107,9 +105,10 @@ class PPO(object):
         critic_loss2 = tf.losses.mean_squared_error(labels=self.critic, predictions=self.returns)
         critic_loss = tf.reduce_mean(tf.math.maximum(critic_loss1, critic_loss2))
 
+        # no need to use entropy in continuous action space
         #entropy = tf.reduce_mean(self.actor.entropy())
         #self.entropy = tf.log(2*np.pi*np.exp(1)*tf.math.square(self.std))
-        #self.entropy = tf.reduce_mean(self.actor.entropy())
+        #self.entropy = tf.reduce_mean(self.normal.entropy())
 
         #loss = -actor_loss + 0.5 * critic_loss - 0.01 * entropy
         loss = -actor_loss + 0.5 * critic_loss
@@ -143,7 +142,7 @@ class PPO(object):
                                              self.actions: actions, self.old_policy: old_policies,
                                              self.old_value: old_values, self.returns: returns, self.std: std})
 
-        a = self.sess.run([self.loss[0], self.loss[1], self.ratio, tf.exp(self.policy), tf.exp(self.old_policy), self.w, self.w2],
+        a = self.sess.run([self.actor],
                           feed_dict={self.state: states, self.advantage: gaes,
                                      self.actions: actions, self.old_policy: old_policies,
                                      self.old_value: old_values, self.returns: returns, self.std: std})
