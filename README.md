@@ -1,8 +1,9 @@
 # transform-rl-tf
 
 ## Usage
-- you can choose rather to run in `ppo` model or `ddpg` model by `--algorithm` argument
-- The code can currently train the RL model in one of the ['r','rsc','rsh','rss','rsst'] mode by `--env` argument
+you can currently train the RL model in
+- one of the `[ppo,ddpg]` model by `--algorithm` argument
+- one of the `['r','rsc','rsh','rss','rsst']` mode by `--env` argument
   - `r` refers to 'rotate'
   - `rsc` refers to 'rotate, scale'
   - `rsh` refers to 'rotate, shear'
