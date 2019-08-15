@@ -8,6 +8,8 @@ import util
 
 
 def main(env_type):
+    img_size = 40 if env_type == 'rsst' else 28
+    
     # load MNIST
     print('=== load MNIST.... ===')
     mnist = input_data.read_data_sets(join("data", "MNIST_data"), one_hot=False)
@@ -20,8 +22,8 @@ def main(env_type):
 
     # generate affine MNIST
     print('=== generate affine MNIST.... ===')
-    train_inputs = np.zeros([10000, 28, 28, 1])
-    test_inputs = np.zeros([10000, 28, 28, 1])
+    train_inputs = np.zeros([10000, img_size, img_size, 1])
+    test_inputs = np.zeros([10000, img_size, img_size, 1])
 
     for i in range(train_inputs.shape[0]):
         img = train_images[i]

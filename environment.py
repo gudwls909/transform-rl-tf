@@ -59,8 +59,8 @@ class MnistEnvironment(object):
     
     def data_load(self):
         if not os.path.isfile('data/affMNIST_28' + self.type + '.pickle'):
-            print("=== No Train Data File ===")
-            affMNIST_generator(self.type)
+            print("=== No Train Data File Exist, Let's Generate it first ===")
+            affMNIST_generator.main(self.type)
         with open(join('data', 'affMNIST_28' + self.type + '.pickle'), 'rb') as f:
             train_dataset, test_dataset = pickle.load(f)
         
