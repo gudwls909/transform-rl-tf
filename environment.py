@@ -10,15 +10,21 @@ import affMNIST_generator
 class MnistEnvironment(object):
     def __init__(self, model, env_type):
         self.model = model
-        if type == 'r' or 'rsc' or 'rsh' or 'rss' or 'rsst':
+        if env_type in ['r','rsc','rsh','rss','rsst']:
             self.type = env_type
         else:
+            print(env_type)
             raise TypeError('env type error')
         self.mc = 20
         self.threshold = 3e-3 if self.type == 'r' else 8e-3
         self._max_episode_steps = 10
-        self.state_shape = [28, 28, 1]
-        self.state_size = 784
+        if env_type == 'rsst':
+            self.state_shape = [40, 40, 1]
+            self.state_size = 1600
+        else:
+            self.state_shape = [28, 28, 1]
+            self.state_size = 784
+            
         if self.type == 'r':
             self.action_size = 1
             self.a_bound = np.array([[-30., 30.]])
@@ -61,7 +67,7 @@ class MnistEnvironment(object):
         # images.shape = (10000,28,28,1), labels onehot=False
         self.train_images, self.train_labels = train_dataset
         self.test_images, self.test_labels = test_dataset
-        self.test_images, self.test_labels = self.test_images[:10000], self.test_labels[:10000]
+        self.test_images, self.test_labels = self.test_images[:200], self.test_labels[:200]
             
     def reset(self, idx, phase='train'):
         self.phase = phase
@@ -87,7 +93,7 @@ class MnistEnvironment(object):
         else:  # self.type == 'rsst'
             self.del_params = [[0., 0., 0., 1., 1., 0., 0.]]
         
-        img_28size = util.theta2affine_img(self.img, self.del_thetas[-1])
+        img_28size = util.theta2affine_img(self.img, self.del_thetas[-1], (28,28))
         prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
         self.uncs = [util.get_mutual_informations(prob_set)[0]]  # save the uncertainty
         self.label_hats = [prob_set.mean(axis=0).argmax(axis=1)[0]]  # save predicted label
@@ -107,7 +113,7 @@ class MnistEnvironment(object):
         next_img = util.theta2affine_img(self.img, del_theta)
         
         # calculate uncertainty
-        img_28size = util.theta2affine_img(self.img, del_theta)
+        img_28size = util.theta2affine_img(self.img, del_theta, (28,28))
         prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
         unc_after = util.get_mutual_informations(prob_set)[0]
         unc_before = self.uncs[-1]
@@ -142,11 +148,13 @@ class MnistEnvironment(object):
             reward = -5
             terminal = True
         else:
-            #reward_after = np.clip(-np.log(unc_after),
-            #                       a_min=None, a_max=-np.log(self.threshold))
-            #reward_before = np.clip(-np.log(unc_before),
-            #                        a_min=None, a_max=-np.log(self.threshold))
-            #reward = reward_after - reward_before - 1.0 if rew_prob >= pred_prob else reward_before - reward_after - 1.0
+#             reward = 0.
+#             reward_after = np.clip(-np.log(unc_after),
+#                                    a_min=None, a_max=-np.log(self.threshold))
+#             reward_before = np.clip(-np.log(unc_before),
+#                                     a_min=None, a_max=-np.log(self.threshold))
+#             reward = reward_after - reward_before - 1.0
+#             reward = reward_after - reward_before - 1.0 if rew_prob >= pred_prob else reward_before - reward_after - 1.0
             reward = self._make_reward()
 
         reward += 1. if success else 0

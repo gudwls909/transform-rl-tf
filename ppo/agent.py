@@ -166,10 +166,12 @@ class Agent(object):
 
     def train(self):
         scores, losses, scores2, losses2, idx_list = [], [], [], [], []
+        count = 0
         for e in range(self.epochs):
             for i, idx in enumerate(np.random.permutation(self.train_size)):
+                count += 1
                 idx_list.append(idx)
-                if (i+1) % self.num_actor == 0:
+                if count % self.num_actor == 0:
                     for j in range(self.num_actor):
                         memory, states, rewards, next_states = [], [], [], []
                         terminal = False
@@ -204,13 +206,13 @@ class Agent(object):
                     scores.clear()
                     idx_list.clear()
 
-                if (i+1)%50 == 0 and (i+1) >= self.num_actor:
-                    print('epoch', e+1, 'iter:', f'{i+1:05d}', ' score:', f'{scores2[-1]:.03f}',
+                if count%50 == 0 and count >= self.num_actor:
+                    print('epoch', e+1, 'iter:', f'{count:05d}', ' score:', f'{scores2[-1]:.03f}',
                           ' actor loss', f'{losses2[-1][0]:.03f}', ' critic loss', f'{losses2[-1][1]:.03f}',
                           f'sequence: {self.env.sequence}')
-                if (i+1)%200 == 0 and (i+1) >= self.num_actor:
-                    self.ENV.render_worker(os.path.join(self.render_dir, f'{(i+1):05d}.png'))
-                if (i+1)%500 == 0:
+                if count%200 == 0 and count >= self.num_actor:
+                    self.ENV.render_worker(os.path.join(self.render_dir, f'{count:05d}.png'))
+                if count%500 == 0:
                     self.save()
         pass
 
@@ -234,7 +236,7 @@ class Agent(object):
                     cor_before_lst.append(cor_before)
                     cor_after_lst.append(cor_after)
 
-                    if (idx+1)%100 == 0:
+                    if (idx+1)%1 == 0:
                         self.ENV.render_worker(os.path.join(self.play_dir, f'{(idx+1):04d}.png'))
                         print(f'{(idx+1):04d} image score: {score}\n')
         print('====== NUMBER OF CORRECTION =======')
