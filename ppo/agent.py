@@ -18,7 +18,7 @@ class Agent(object):
         # CartPole 환경
         self.sess = sess
         self.model = Network(sess, phase='train')  # pre-trained mnist accuracy model
-        self.env = MnistEnvironment(self.model, args.env)
+        self.env = MnistEnvironment(self.model, args.env, args.reward_type)
         self.state_size = self.env.state_size
         self.state_shape = self.env.state_shape
         self.action_size = self.env.action_size
@@ -32,10 +32,10 @@ class Agent(object):
         self.epochs = args.epochs
         self._make_std()
 
-        self.num_actor = 32  # N
+        self.num_actor = 128  # N
         self.timesteps = 20  # T
         self.gae_parameter = 0.95  # lambda
-        self.num_train = 16  # K
+        self.num_train = 64  # K
 
         self.ENV = Environment(self.env, self.state_size, self.action_size)
         self.replay = ReplayMemory(self.state_size, self.batch_size, self.num_actor * self.timesteps)
@@ -152,7 +152,11 @@ class Agent(object):
             advants[t] = running_advants
 
         if len(rewards) > 1:
-            advants = (advants - advants.mean()) / advants.std()
+            if (advants.std() == [0 for _ in range(len(rewards))]).all():
+                pass
+            else:
+                advants = (advants - advants.mean()) / advants.std()
+
         for t in range(len(rewards)):
             memory[t].append(advants[t])
             memory[t].append(returns[t])

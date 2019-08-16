@@ -11,12 +11,13 @@ from ddpg.agent import Agent as Agent_ddpg
 parser = argparse.ArgumentParser(description="Pendulum")
 parser.add_argument('--algorithm', default='ppo', type=str)
 parser.add_argument('--gpu_number', default='0', type=str)
-parser.add_argument('--learning_rate', default=0.0003, type=float)
-parser.add_argument('--batch_size', default=32, type=int)
+parser.add_argument('--learning_rate', default=0.0001, type=float)
+parser.add_argument('--batch_size', default=128, type=int)
 parser.add_argument('--discount_factor', default=0.99, type=float)
 parser.add_argument('--continue_train', default=False, action='store_true')
 parser.add_argument('--test', default=False, action='store_true')
 parser.add_argument('--env', default='r', type=str)
+parser.add_argument('--reward_type', default=3, type=int)
 parser.add_argument('--epochs', default=1, type=int)
 parser.add_argument('--epsilon', default=0.2, type=float)
 parser.add_argument('--save_dir', default='ex', type=str)
@@ -33,6 +34,17 @@ if not os.path.exists(args.render_dir):
 if not os.path.exists(args.play_dir):
     os.makedirs(args.play_dir)
 
+# delete previous file in render dir & play_dir
+if not args.test:
+    for file in os.listdir(args.render_dir):
+        file_path = os.path.join(args.render_dir, file)
+        if os.path.isfile(file_path):
+            os.unlink(file_path)
+for file in os.listdir(args.play_dir):
+    file_path = os.path.join(args.play_dir, file)
+    if os.path.isfile(file_path):
+        os.unlink(file_path)
+
 config = tf.ConfigProto()
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_number
 config.log_device_placement = False
@@ -40,7 +52,6 @@ config.gpu_options.allow_growth = True
 
 
 if __name__ == '__main__':
-    # 학습 or 테스트
     with tf.Session(config=config) as sess:
         Agent = Agent_ppo if args.algorithm == 'ppo' else Agent_ddpg
         agent = Agent(args, sess)
