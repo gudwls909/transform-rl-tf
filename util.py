@@ -246,10 +246,10 @@ def save_batch_fig(fname, batch_grid, img_width, tick_labels):
 # ================================================================ #
 
 def all_prob(model, batch, mc):
-    '''
+    """
     get all the probabilities of the images repectively, given multiple network
     return size = [# of network, # of images, # of class]
-    '''
+    """
     prob_set = np.zeros([mc, len(batch), 10])
     for i in range(mc):
         prob_set[i] = model.test(batch)
@@ -257,9 +257,9 @@ def all_prob(model, batch, mc):
 
 
 def get_predictive_entropies(prob_set):
-    '''
+    """
     return shape: (batch_size)
-    '''
+    """
     expected_prob = prob_set.mean(axis=0)
     minus_p_logp = -1 * expected_prob * np.log(expected_prob + 1e-15)
     predictive_entropies = minus_p_logp.sum(axis=1)
@@ -267,9 +267,9 @@ def get_predictive_entropies(prob_set):
 
 
 def get_mutual_informations(prob_set):
-    ''' 
+    """
     return shape: (batch_size)
-    '''
+    """
     minus_p_logp = -1. * prob_set * np.log(prob_set + 1e-15)
     entropies = minus_p_logp.sum(axis=2)
     expected_entropies = entropies.mean(axis=0)

@@ -22,7 +22,8 @@ class MnistEnvironment(object):
             print(rew_type)
             raise TypeError('rew type error')
         self.mc = 20
-        self.threshold = 3e-3 if self.type == 'r' else 8e-3
+        # self.threshold = 3e-3 if self.type == 'r' else 8e-3
+        self.threshold = 0.99 if self.type == 'r' else 0.99
         self._max_episode_steps = 10
         if env_type == 'rsst':
             self.state_shape = [40, 40, 1]
@@ -100,9 +101,12 @@ class MnistEnvironment(object):
             self.del_params = [[0., 0., 0., 1., 1., 0., 0.]]
 
         img_28size = util.theta2affine_img(self.img, self.del_thetas[-1], (28, 28))
-        prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
-        self.uncs = [util.get_mutual_informations(prob_set)[0]]  # save the uncertainty
-        self.label_hats = [prob_set.mean(axis=0).argmax(axis=1)[0]]  # save predicted label
+        # prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
+        # self.uncs = [util.get_mutual_informations(prob_set)[0]]  # save the uncertainty
+        prob = np.clip(self.model.test(np.expand_dims(img_28size, axis=0))[0], 0, 0.9999)
+        self.accs = [prob[self.label]]
+        # self.label_hats = [prob_set.mean(axis=0).argmax(axis=1)[0]]  # save predicted label
+        self.label_hats = [prob.argmax()]
         self.rewards = [0]
 
         return self.img.flatten()
@@ -120,23 +124,27 @@ class MnistEnvironment(object):
 
         # calculate uncertainty
         img_28size = util.theta2affine_img(self.img, del_theta, (28, 28))
-        prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
-        unc_after = util.get_mutual_informations(prob_set)[0]
-        unc_before = self.uncs[-1]
+        # prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
+        # unc_after = util.get_mutual_informations(prob_set)[0]
+        # unc_before = self.uncs[-1]
+        acc_before = self.accs[-1]
+        prob = self.model.test(np.expand_dims(img_28size, axis=0))[0]
+        acc_after = np.clip(prob[self.label], 0, 0.9999)
+        rew_prob = -np.log(1-acc_after)
+        rew_prob_before = -np.log(1-acc_before)
 
         # save the values
-        self.uncs.append(unc_after)
-        self.label_hats.append(prob_set.mean(axis=0).argmax(axis=1)[0])
+        # self.uncs.append(unc_after)
+        self.accs.append(acc_after)
+        # self.label_hats.append(prob_set.mean(axis=0).argmax(axis=1)[0])
+        self.label_hats.append(prob.argmax())
         self.batch_imgs.append(next_img)
-        # rew_prob = prob_set.mean(axis=0)[0][self.label]
-        # log_rew_prob = np.clip(-np.log(1-rew_prob), a_min=None, a_max=-np.log(self.threshold))
-        # pred_prob = prob_set.mean(axis=0)[0][self.label_hats[-1]]
-        # log_pred_prob = np.clip(-np.log(1-pred_prob), a_min=None, a_max=-np.log(self.threshold))
 
         # terminal
         success = False
         if self.phase == 'train':
-            if unc_after < self.threshold and self.label_hats[-1] == self.label:
+            # if unc_after < self.threshold and self.label_hats[-1] == self.label:
+            if acc_after > self.threshold and self.label_hats[-1] == self.label:
                 terminal = True
                 success = True
             elif self.sequence >= self._max_episode_steps:
@@ -144,7 +152,8 @@ class MnistEnvironment(object):
             else:
                 terminal = False
         else:  # self.phase == 'test'
-            if unc_after < self.threshold or self.sequence >= self._max_episode_steps:
+            # if unc_after < self.threshold or self.sequence >= self._max_episode_steps:
+            if acc_after > self.threshold or self.sequence >= self._max_episode_steps:
                 terminal = True
             else:
                 terminal = False
@@ -154,13 +163,8 @@ class MnistEnvironment(object):
             reward = -5
             terminal = True
         else:
-            # reward = 0.
-            # reward_after = np.clip(-np.log(unc_after),
-            #                        a_min=None, a_max=-np.log(self.threshold))
-            # reward_before = np.clip(-np.log(unc_before),
-            #                         a_min=None, a_max=-np.log(self.threshold))
-            # reward = reward_after - reward_before - 1.0
-            reward = self._make_reward()
+            # reward = self._make_reward()
+            reward = rew_prob - rew_prob_before - 1
 
         reward += 1. if success else 0
         self.rewards.append(reward)
@@ -172,34 +176,39 @@ class MnistEnvironment(object):
         img_width = self.batch_imgs.shape[2]
 
         self.batch_imgs = util.make_grid(self.batch_imgs, len(self.batch_imgs), 2)
-        print(self.uncs, '\n')
+        # print(self.uncs, '\n')
+        print(self.accs, '\n')
         if self.action_size == 1:
             tick_labels = [str([float(f'{p:.01f}') for p in param]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
-                           in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+                           # in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+                           in zip(self.del_params, self.accs, self.label_hats, self.rewards)]
         elif self.action_size == 3:
             tick_labels = [str([float(f'{p:.01f}') for p in param[:1]]) + '\n' +
                            str([float(f'{p:.03f}') for p in param[1:3]]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
-                           in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+                           # in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+                           in zip(self.del_params, self.accs, self.label_hats, self.rewards)]
         elif self.action_size == 5:
             tick_labels = [str([float(f'{p:.01f}') for p in param[:1]]) + '\n' +
                            str([float(f'{p:.03f}') for p in param[1:3]]) + '\n' +
                            str([float(f'{p:.03f}') for p in param[3:5]]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
-                           in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+                           # in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+                           in zip(self.del_params, self.accs, self.label_hats, self.rewards)]
         else:  # self.action_size == 7
             tick_labels = [str([float(f'{p:.01f}') for p in param[:1]]) + '\n' +
                            str([float(f'{p:.03f}') for p in param[1:3]]) + '\n' +
                            str([float(f'{p:.03f}') for p in param[3:5]]) + '\n' +
                            str([float(f'{p:.01f}') for p in param[5:7]]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
-                           in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+                           # in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
+                           in zip(self.del_params, self.accs, self.label_hats, self.rewards)]
         util.save_batch_fig(fname, self.batch_imgs, img_width, tick_labels)
 
     def compare_accuracy(self):
         return self.label_hats[0] == self.label, self.label_hats[-1] == self.label
-
+    '''
     def _make_reward(self):
         if self.rew_type == 1:
             # tuned reward function
@@ -259,6 +268,7 @@ class MnistEnvironment(object):
         # reward gets -1 every timestep
         reward -= 1
         return reward
+    '''
 
 
 class Environment(object):
