@@ -7,18 +7,19 @@ from ddpg.agent import Agent as Agent_ddpg
 
 
 # print(sys.executable)
-# parameter 저장하는 parser
 parser = argparse.ArgumentParser(description="Pendulum")
 parser.add_argument('--algorithm', default='ppo', type=str)
 parser.add_argument('--gpu_number', default='0', type=str)
-parser.add_argument('--learning_rate', default=0.0003, type=float)
-parser.add_argument('--batch_size', default=32, type=int)
+parser.add_argument('--learning_rate', default=0.0001, type=float)
+parser.add_argument('--batch_size', default=256, type=int)
 parser.add_argument('--discount_factor', default=0.99, type=float)
 parser.add_argument('--continue_train', default=False, action='store_true')
 parser.add_argument('--test', default=False, action='store_true')
-parser.add_argument('--env', default='r', type=str)
+parser.add_argument('--env', default='rst', type=str)
 parser.add_argument('--reward_type', default=1, type=int)
-parser.add_argument('--epochs', default=1, type=int)
+# Rotate Right=1 Left=0, Scale Big=1 Small=0, Translation Right=1, Down=2, Left=3, Up=4
+parser.add_argument('-g', '--gen', nargs='+', default=[1, 1, 1, 1, 0, 3, 0, 1, 2, 0, 0, 4], type=int)
+parser.add_argument('--epochs', default=5, type=int)
 parser.add_argument('--epsilon', default=0.2, type=float)
 parser.add_argument('--save_dir', default='ex', type=str)
 parser.add_argument('--render_dir', default='render_train', type=str)

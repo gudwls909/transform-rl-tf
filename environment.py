@@ -9,9 +9,9 @@ import affMNIST_generator
 
 
 class MnistEnvironment(object):
-    def __init__(self, model, env_type, rew_type):
+    def __init__(self, model, env_type, rew_type, gen):
         self.model = model
-        if env_type in ['r', 'rsc', 'rsh', 'rss', 'rsst']:
+        if env_type in ['r', 'rsc', 'rsh', 'rss', 'rsst', 'rst']:
             self.type = env_type
         else:
             print(env_type)
@@ -21,11 +21,12 @@ class MnistEnvironment(object):
         else:
             print(rew_type)
             raise TypeError('rew type error')
+        self.gen =gen
         self.mc = 20
         # self.threshold = 3e-3 if self.type == 'r' else 8e-3
         self.threshold = 0.99 if self.type == 'r' else 0.99
         self._max_episode_steps = 10
-        if env_type == 'rsst':
+        if env_type == 'rsst' or env_type == 'rst':
             self.state_shape = [40, 40, 1]
             self.state_size = 1600
         else:
@@ -52,6 +53,14 @@ class MnistEnvironment(object):
                                      [-0.2, 0.2],
                                      [0.8, 1.2],
                                      [0.8, 1.2]])
+
+        elif self.type == 'rst':
+            self.action_size = 5
+            self.a_bound = np.array([[-15., 15.],
+                                     [0.9, 1.1],
+                                     [0.9, 1.1],
+                                     [-1., 1.],
+                                     [-1., 1.]])
         else:  # self.type = 'rsst'
             self.action_size = 7
             self.a_bound = np.array([[-15., 15.],
@@ -59,22 +68,22 @@ class MnistEnvironment(object):
                                      [-0.1, 0.1],
                                      [0.9, 1.1],
                                      [0.9, 1.1],
-                                     [-1., 1],
-                                     [-1., 1]])
+                                     [-1., 1.],
+                                     [-1., 1.]])
 
         self.data_load()
 
     def data_load(self):
         if not os.path.isfile('data/affMNIST_28' + self.type + '.pickle'):
             print("=== No Train Data File Exist, Let's Generate it first ===")
-            affMNIST_generator.main(self.type)
+            affMNIST_generator.main(self.type, self.gen)
         with open(join('data', 'affMNIST_28' + self.type + '.pickle'), 'rb') as f:
             train_dataset, test_dataset = pickle.load(f)
 
         # images.shape = (10000,28,28,1) or (10000,40,40,1), labels onehot=False
         self.train_images, self.train_labels = train_dataset
         self.test_images, self.test_labels = test_dataset
-        self.test_images, self.test_labels = self.test_images[:200], self.test_labels[:200]
+        self.test_images, self.test_labels = self.test_images[:10000], self.test_labels[:10000]
 
     def reset(self, idx, phase='train'):
         self.phase = phase
