@@ -11,66 +11,69 @@ pil2np = lambda img: np.expand_dims((np.array(img) / 255.), axis=2)
 pil_rotate = lambda img, angle: img.rotate(angle)
 pil_blur = lambda img, radius: img.filter(ImageFilter.GaussianBlur(radius))
 pil_sharpen = lambda img, radius: img.filter(ImageFilter.UnsharpMask(radius))
-pil_affine = lambda img, theta: img.transform(img.size, Image.AFFINE, 
+pil_affine = lambda img, theta: img.transform(img.size, Image.AFFINE,
                                               theta, resample=Image.BICUBIC)
 
 
 def theta2mtx(theta):
-    '''
+    """
     Args:
         theta(np.array): 6 parameters for affine transformation, size=(6,)
     Returns:
         affine_mtx(np.array): size=(3,3)
-    '''
+    """
     affine_mtx = np.eye(3)
     affine_mtx[:2, :] = theta.reshape([2, 3])
     return affine_mtx
 
 
 def get_affine_theta(method, param=None, a_bound=None):
-    ''' 
+    """
     Args:
         method: one in ['translation','rotate','shear','scale']
         param:
         a_bound(list): action boundary
     Returns:
         theta(np.array): 6 parameters for affine transformation, size=(6,)
-    '''
-    
+    """
+
     if method == 'translation':
-        a = np.random.uniform(a_bound[0], a_bound[1], 2)\
+        sign = np.random.choice([-1, 1], 2)
+        a = -6 + sign * np.random.uniform(a_bound[0], a_bound[1], 2) \
             if param is None else param
 
         theta = np.array((1, 0, a[0],
                           0, 1, a[1]))
 
     elif method == 'rotate':
-        sign = np.random.choice([-1,1])
+        sign = np.random.choice([-1, 1])
         a = sign * np.random.uniform(a_bound[0], a_bound[1])\
             if param is None else param
         a = np.radians(a)
         theta = np.array((np.cos(a), -np.sin(a), 0,
-                          np.sin(a), np.cos(a), 0)) 
+                          np.sin(a), np.cos(a), 0))
 
     elif method == 'shear':
-        a = np.random.uniform(a_bound[0], a_bound[1], 2)\
-            if param is None else param                                                                                                                                             
+        sign = np.random.choice([-1, 1], 2)
+        a = sign * np.random.uniform(a_bound[0], a_bound[1], 2) \
+            if param is None else param
         theta = np.array((1, a[0], 0,
-                          a[1], 1, 0)) 
+                          a[1], 1, 0))
 
     elif method == 'scale':
-        a = np.random.uniform(a_bound[0], a_bound[1], 2)\
+        sign = np.random.choice([-1, 1], 2)
+        a = 1 + sign * np.random.uniform(a_bound[0], a_bound[1], 2) \
             if param is None else param
         theta = np.array((a[0], 0, 0,
-                          0, a[1], 0)) 
+                          0, a[1], 0))
 
     else:
-        raise Exception("`method` should be one of the ['translation','rotate','shear','scale']")    
+        raise Exception("`method` should be one of the ['translation','rotate','shear','scale']")
 
     return theta
 
 
-def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[-0.5, 0.5], sc_bound=[0.8, 1.2], t_bound=[-12, 0]):
+def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[0.2, 0.5], sc_bound=[0.1, 0.2], t_bound=[3, 6]):
     """
     Args:
         img(np.array): HWC format
@@ -78,7 +81,7 @@ def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[-0.5, 0.5], s
         img(np.array): HWC format
     """
     # translation : move center of the image to (0,0)
-    t1_mtx = theta2mtx(get_affine_theta('translation', a_bound=[img.shape[1]/2, img.shape[0]/2]))
+    t1_mtx = theta2mtx(get_affine_theta('translation', param=[img.shape[1]/2, img.shape[0]/2]))
 
     # rotate, shear, scale
     r_mtx = theta2mtx(get_affine_theta('rotate', a_bound=r_bound))
@@ -86,7 +89,7 @@ def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[-0.5, 0.5], s
     sc_mtx = theta2mtx(get_affine_theta('scale', a_bound=sc_bound))
 
     # translation : move back (0,0) to be the left-upper corner of the image
-    t2_mtx = theta2mtx(get_affine_theta('translation', a_bound=[-img.shape[1]/2, -img.shape[0]/2]))
+    t2_mtx = theta2mtx(get_affine_theta('translation', param=[-img.shape[1]/2, -img.shape[0]/2]))
 
     # translation : move mnist in (40,40) size black image
     t3_mtx = theta2mtx(get_affine_theta('translation', a_bound=t_bound))
@@ -125,7 +128,7 @@ def param2theta(param, env):
     img_size = 40 if env == 'rsst' else 28
 
     # translation : move center of the image to (0,0)
-    t1_mtx = theta2mtx(get_affine_theta('translation', a_bound=[img_size/2, img_size/2]))
+    t1_mtx = theta2mtx(get_affine_theta('translation', param=[img_size/2, img_size/2]))
 
     # rotate, shear, scale, translate
     t_mtx = theta2mtx(get_affine_theta('translation', param=param[5:])) if env == 'rsst' else np.eye(3)
@@ -139,14 +142,14 @@ def param2theta(param, env):
     r_mtx = theta2mtx(get_affine_theta('rotate', param=param[0]))
 
     # translation : move back (0,0) to be the left-upper corner of the image
-    t2_mtx = theta2mtx(get_affine_theta('translation', a_bound=[-img_size/2, -img_size/2]))
+    t2_mtx = theta2mtx(get_affine_theta('translation', param=[-img_size/2, -img_size/2]))
 
     # integrated affine transformation
     affine_mtx = t1_mtx @ t_mtx @ sc_mtx @ sh_mtx @ r_mtx @ t2_mtx
     theta = affine_mtx[:2, :].flatten()
 
     return theta
-    
+
 
 def theta2affine_img(img, theta, resize=None):
     """
@@ -171,7 +174,7 @@ def integrate_thetas(thetas):
         int_mtx = int_mtx @ mtx
     int_theta = int_mtx[:2, :].flatten()
     return int_theta
-    
+
 
 # def np_rotate(img, angle):
 #     img = np2pil(img)
@@ -214,14 +217,14 @@ def make_grid(batch, nrow=8, padding=2):
     ds = batch.shape[1] # data_size
     ncol = np.ceil(batch.shape[0]/nrow).astype(np.int)
     grid = np.ones([(ds+padding)*ncol-padding, (ds+padding)*nrow-padding])
-    
+
     for i in range(batch.shape[0]):
         row_idx, col_idx = i%nrow, i//nrow
-        grid[col_idx*(padding+ds):col_idx*(padding+ds) + ds, 
+        grid[col_idx*(padding+ds):col_idx*(padding+ds) + ds,
              row_idx*(padding+ds):row_idx*(padding+ds) + ds] = batch[i]
-    
-    return grid 
-    
+
+    return grid
+
 
 def save_batch_fig(fname, batch_grid, img_width, tick_labels):
     '''
@@ -273,9 +276,9 @@ def get_mutual_informations(prob_set):
     minus_p_logp = -1. * prob_set * np.log(prob_set + 1e-15)
     entropies = minus_p_logp.sum(axis=2)
     expected_entropies = entropies.mean(axis=0)
-        
-    predictive_entropies = get_predictive_entropies(prob_set) 
-        
+
+    predictive_entropies = get_predictive_entropies(prob_set)
+
     mutual_informations = predictive_entropies - expected_entropies
     mutual_informations = np.clip(mutual_informations, a_min=0., a_max=None)
     return mutual_informations

@@ -107,6 +107,7 @@ class MnistEnvironment(object):
         self.accs = [prob[self.label]]
         # self.label_hats = [prob_set.mean(axis=0).argmax(axis=1)[0]]  # save predicted label
         self.label_hats = [prob.argmax()]
+        self.max_probs = [prob.max()]
         self.rewards = [0]
 
         return self.img.flatten()
@@ -138,22 +139,23 @@ class MnistEnvironment(object):
         self.accs.append(acc_after)
         # self.label_hats.append(prob_set.mean(axis=0).argmax(axis=1)[0])
         self.label_hats.append(prob.argmax())
+        self.max_probs.append(prob.max())
         self.batch_imgs.append(next_img)
 
         # terminal
-        success = False
+        self.success = False
         if self.phase == 'train':
             # if unc_after < self.threshold and self.label_hats[-1] == self.label:
             if acc_after > self.threshold and self.label_hats[-1] == self.label:
                 terminal = True
-                success = True
+                self.success = True
             elif self.sequence >= self._max_episode_steps:
                 terminal = True
             else:
                 terminal = False
         else:  # self.phase == 'test'
             # if unc_after < self.threshold or self.sequence >= self._max_episode_steps:
-            if acc_after > self.threshold or self.sequence >= self._max_episode_steps:
+            if self.max_probs[-1] > self.threshold or self.sequence >= self._max_episode_steps:
                 terminal = True
             else:
                 terminal = False
@@ -166,7 +168,7 @@ class MnistEnvironment(object):
             # reward = self._make_reward()
             reward = rew_prob - rew_prob_before - 1
 
-        reward += 1. if success else 0
+        reward += 1. if self.success else 0
         self.rewards.append(reward)
 
         return next_img.flatten(), reward, terminal, 0
@@ -207,6 +209,7 @@ class MnistEnvironment(object):
         util.save_batch_fig(fname, self.batch_imgs, img_width, tick_labels)
 
     def compare_accuracy(self):
+        # label_hats = self.label_hats[-1] if self.success else self.label_hats[np.argmax(self.max_probs)]
         return self.label_hats[0] == self.label, self.label_hats[-1] == self.label
     '''
     def _make_reward(self):
