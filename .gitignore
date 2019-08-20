@@ -1,7 +1,10 @@
 *__pycache__*
 *.ipynb_checkpoints*
 *.swp*
+z_*.ipynb
 
 data/
 
 save/
+
+compare/
