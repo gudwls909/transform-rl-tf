@@ -1,4 +1,3 @@
-
 import os
 import tensorflow as tf
 import numpy as np
@@ -13,12 +12,12 @@ from origin_model.mnist_solver import Network
 import time
 from scipy.stats import norm
 
+
 class Agent(object):
     def __init__(self, args, sess):
-        # CartPole 환경
         self.sess = sess
-        self.model = Network(sess, phase='train')  # pre-trained mnist accuracy model
-        self.env = MnistEnvironment(self.model, args.env)
+        self.model = Network(sess, phase='test')  # pre-trained mnist accuracy model
+        self.env = MnistEnvironment(self.model, args.env, args.reward_type)
         self.state_size = self.env.state_size
         self.state_shape = self.env.state_shape
         self.action_size = self.env.action_size
@@ -52,7 +51,7 @@ class Agent(object):
 
         # load pre-trained mnist model
         self.env.model.checkpoint_load()
-        
+
         self.saver = tf.train.Saver()
 
         # continue_train
@@ -86,7 +85,7 @@ class Agent(object):
         action = (action - a_mean) / a_range
         actor_output = self.sess.run(self.ppo.actor,
                                      feed_dict={self.ppo.state: state, self.ppo.std: self.std_step})[0]
-        #old_policy = self.sess.run(self.ppo.normal.log_prob(action - actor_output),
+        # old_policy = self.sess.run(self.ppo.normal.log_prob(action - actor_output),
         #                           feed_dict={self.ppo.state: state, self.ppo.std: self.std_step})[0]
         old_policy = norm.logpdf(action - actor_output, loc=0, scale=self.std_step[0])
         return old_policy
@@ -94,10 +93,10 @@ class Agent(object):
 
     def _make_std(self):
         # make std for step, train and test
-        #a_range = self.a_bound[:, 1:] - self.a_bound[:, :1]
+        # a_range = self.a_bound[:, 1:] - self.a_bound[:, :1]
         self.std_step = np.ones([1, self.action_size])
         self.std_train = np.ones([self.batch_size, self.action_size])
-        #self.std_train = np.multiply(self.std_train, np.transpose(a_range)) / 2.
+        # self.std_train = np.multiply(self.std_train, np.transpose(a_range)) / 2.
         self.std_test = self.std_train / 5.
 
     '''
@@ -142,17 +141,19 @@ class Agent(object):
 
         for t in reversed(range(0, len(rewards))):
             running_returns = rewards[t] + self.discount_factor * running_returns * masks[t]
-            running_tderror = rewards[t] + self.discount_factor * previous_value * masks[t] - \
-                              values[t]
-            running_advants = running_tderror + self.discount_factor * self.gae_parameter * \
-                              running_advants * masks[t]
+            running_tderror = rewards[t] + self.discount_factor * previous_value * masks[t] - values[t]
+            running_advants = running_tderror + self.discount_factor * self.gae_parameter * running_advants * masks[t]
 
             returns[t] = running_returns
             previous_value = values[t]
             advants[t] = running_advants
 
         if len(rewards) > 1:
-            advants = (advants - advants.mean()) / advants.std()
+            if (advants.std() == [0 for _ in range(len(rewards))]).all():
+                pass
+            else:
+                advants = (advants - advants.mean()) / advants.std()
+
         for t in range(len(rewards)):
             memory[t].append(advants[t])
             memory[t].append(returns[t])
@@ -166,13 +167,14 @@ class Agent(object):
 
     def train(self):
         scores, losses, scores2, losses2, idx_list = [], [], [], [], []
+        count = 0
         for e in range(self.epochs):
             for i, idx in enumerate(np.random.permutation(self.train_size)):
+                count += 1
                 idx_list.append(idx)
-                if (i+1) % self.num_actor == 0:
+                if count % self.num_actor == 0:
                     for j in range(self.num_actor):
                         memory, states, rewards, next_states = [], [], [], []
-                        terminal = False
                         score = 0
                         state = self.ENV.new_episode(idx_list[j])
                         for _ in range(self.timesteps):
@@ -204,13 +206,13 @@ class Agent(object):
                     scores.clear()
                     idx_list.clear()
 
-                if (i+1)%50 == 0 and (i+1) >= self.num_actor:
-                    print('epoch', e+1, 'iter:', f'{i+1:05d}', ' score:', f'{scores2[-1]:.03f}',
+                if count % 50 == 0 and count >= self.num_actor:
+                    print('epoch', e + 1, 'iter:', f'{count:05d}', ' score:', f'{scores2[-1]:.03f}',
                           ' actor loss', f'{losses2[-1][0]:.03f}', ' critic loss', f'{losses2[-1][1]:.03f}',
                           f'sequence: {self.env.sequence}')
-                if (i+1)%200 == 0 and (i+1) >= self.num_actor:
-                    self.ENV.render_worker(os.path.join(self.render_dir, f'{(i+1):05d}.png'))
-                if (i+1)%500 == 0:
+                if count % 200 == 0 and count >= self.num_actor:
+                    self.ENV.render_worker(os.path.join(self.render_dir, f'{count:05d}.png'))
+                if count % 500 == 0:
                     self.save()
         pass
 
@@ -219,7 +221,7 @@ class Agent(object):
         for idx in range(self.test_size):
             state = self.ENV.new_episode(idx, phase='test')
             state = np.reshape(state, [1, self.state_size])
-    
+
             terminal = False
             score = 0
             while not terminal:
@@ -228,17 +230,18 @@ class Agent(object):
                 next_state = np.reshape(next_state, [1, self.state_size])
                 score += reward
                 state = next_state
-#                 time.sleep(0.02)
+                #                 time.sleep(0.02)
                 if terminal:
                     (cor_before, cor_after) = self.ENV.compare_accuracy()
                     cor_before_lst.append(cor_before)
                     cor_after_lst.append(cor_after)
 
-                    if (idx+1)%100 == 0:
-                        self.ENV.render_worker(os.path.join(self.play_dir, f'{(idx+1):04d}.png'))
-                        print(f'{(idx+1):04d} image score: {score}\n')
+                    if (idx + 1) % 1 == 0:
+                        self.ENV.render_worker(os.path.join(self.play_dir, f'{(idx + 1):04d}.png'))
+                        print(f'{(idx + 1):04d} image score: {score}\n')
         print('====== NUMBER OF CORRECTION =======')
         print(f'before: {np.sum(cor_before_lst)}, after: {np.sum(cor_after_lst)}')
+
     pass
 
     def save(self):
@@ -251,4 +254,3 @@ class Agent(object):
         print('=== loading ckeckpoint... ===')
         checkpoint_dir = os.path.join(self.save_dir, 'ckpt')
         self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'trained_agent'))
-
