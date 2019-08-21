@@ -212,7 +212,7 @@ class Agent(object):
                           f'sequence: {self.env.sequence}')
                 if count % 300 == 0 and count >= self.num_actor:
                     self.ENV.render_worker(os.path.join(self.render_dir, f'{count:05d}.png'))
-                if count % 500 == 0:
+                if count % 1000 == 0:
                     self.save()
         pass
 

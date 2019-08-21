@@ -19,7 +19,7 @@ parser.add_argument('--env', default='rst', type=str)
 parser.add_argument('--reward_type', default=1, type=int)
 # Rotate Right=1 Left=0, Scale Big=1 Small=0, Translation Right=1, Down=2, Left=3, Up=4
 parser.add_argument('-g', '--gen', nargs='+', default=[1, 1, 1, 1, 0, 3, 0, 1, 2, 0, 0, 4], type=int)
-parser.add_argument('--epochs', default=5, type=int)
+parser.add_argument('--epochs', default=1, type=int)
 parser.add_argument('--epsilon', default=0.2, type=float)
 parser.add_argument('--save_dir', default='ex', type=str)
 parser.add_argument('--render_dir', default='render_train', type=str)

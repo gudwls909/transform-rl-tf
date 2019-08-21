@@ -40,16 +40,16 @@ def get_affine_theta(method, param=None, a_bound=None):
 
     if method == 'translation':
         sign = -1 if a_bound in [1, 2] else 1
-        a = -6 + sign * np.random.uniform(3, 6) \
+        t = -6 + sign * np.random.uniform(3, 6) \
             if param is None else param
 
         if param is None:
             if a_bound in [1, 3]:
-                theta = np.array((1, 0, a, 0, 1, 0))
+                theta = np.array((1, 0, t, 0, 1, -6))
             else:
-                theta = np.array((1, 0, 0, 0, 1, a))
+                theta = np.array((1, 0, -6, 0, 1, t))
         else:
-            theta = np.array((1, 0, a[0], 0, 1, a[1]))
+            theta = np.array((1, 0, param[0], 0, 1, param[1]))
 
     elif method == 'rotate':
         a = np.random.uniform(a_bound[0], a_bound[1]) \
@@ -78,7 +78,7 @@ def get_affine_theta(method, param=None, a_bound=None):
 
 
 def random_affine_image(img, env_type, gen, phase, r_bound=[20, 50], sh_bound=[0.2, 0.5],
-                        sc_bound=[0.1, 0.2], t_bound=[3, 6]):
+                        sc_bound=[0.01, 0.02], t_bound=[3, 6]):
     """
     Args:
         img(np.array): HWC format
