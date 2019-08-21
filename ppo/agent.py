@@ -236,7 +236,7 @@ class Agent(object):
                     cor_before_lst.append(cor_before)
                     cor_after_lst.append(cor_after)
 
-                    if (idx + 1) % 100 == 0:
+                    if (idx + 1) % 200 == 0:
                         self.ENV.render_worker(os.path.join(self.play_dir, f'{(idx + 1):04d}.png'))
                         print(f'{(idx + 1):04d} image score: {score}\n')
         print('====== NUMBER OF CORRECTION =======')

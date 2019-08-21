@@ -8,7 +8,7 @@ def classifier(images, options, reuse=False, name='classifier'):
         x = relu(conv2d(x, 2*options.nf, ks=3, s=2, name='conv2')) # 14*14*(2*nf)
         x = relu(conv2d(x, 4*options.nf, ks=3, s=2, name='conv3')) # 7*7*(4*nf)
 
-        x = linear(tf.reshape(x, [-1, 7*7*(4*options.nf)]), 128, name='linear1')
+        x = linear(tf.reshape(x, [-1, int(options.input_size*options.input_size*options.nf/4)]), 128, name='linear1')
         x = dropout(x, 0.5, options.phase)
         x = linear(x, options.label_n, name='linear2')
         return x

@@ -40,7 +40,7 @@ def get_affine_theta(method, param=None, a_bound=None):
 
     if method == 'translation':
         sign = -1 if a_bound in [1, 2] else 1
-        t = -6 + sign * np.random.uniform(3, 6) \
+        t = -6 + sign * np.random.uniform(8, 9) \
             if param is None else param
 
         if param is None:
@@ -77,8 +77,8 @@ def get_affine_theta(method, param=None, a_bound=None):
     return theta
 
 
-def random_affine_image(img, env_type, gen, phase, r_bound=[20, 50], sh_bound=[0.2, 0.5],
-                        sc_bound=[0.01, 0.02], t_bound=[3, 6]):
+def random_affine_image(img, env_type, gen, phase, r_bound=[50, 60], sh_bound=[0.2, 0.5],
+                        sc_bound=[0.25, 0.3], t_bound=[3, 6]):
     """
     Args:
         img(np.array): HWC format
@@ -98,9 +98,11 @@ def random_affine_image(img, env_type, gen, phase, r_bound=[20, 50], sh_bound=[0
             else:
                 continue
     if rand[0] == 0:
-        r_bound = [-50, -20]
+        r_bound = -np.flip(np.array(r_bound))
+        r_bound.tolist()
     if rand[1] == 1:
-        sc_bound = [-0.2, -0.1]
+        sc_bound = -np.flip(np.array(sc_bound))
+        sc_bound.tolist()
     t_bound = rand[2]
 
     # translation : move center of the image to (0,0)

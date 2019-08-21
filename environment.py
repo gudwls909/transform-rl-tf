@@ -188,7 +188,7 @@ class MnistEnvironment(object):
 
         self.batch_imgs = util.make_grid(self.batch_imgs, len(self.batch_imgs), 2)
         # print(self.uncs, '\n')
-        print(self.accs, '\n')
+#        print(self.accs, '\n')
         if self.action_size == 1:
             tick_labels = [str([float(f'{p:.01f}') for p in param]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
