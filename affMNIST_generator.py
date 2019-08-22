@@ -11,7 +11,7 @@ import util
 def main(env_type, gen):
     img_size = 40 if env_type == 'rsst' or env_type == 'rst' else 28
     # gen = np.reshape(np.array(gen), (4, 3)).tolist()
-    gen = [gen[3*i:3*i+3] for i in range(4)]
+    gen = [gen[3*i:3*i+3] for i in range(8)]
 
     # load MNIST
     print('=== load MNIST.... ===')

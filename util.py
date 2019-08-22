@@ -40,8 +40,7 @@ def get_affine_theta(method, param=None, a_bound=None):
 
     if method == 'translation':
         sign = -1 if a_bound in [1, 2] else 1
-        t = -6 + sign * np.random.uniform(8, 9) \
-            if param is None else param
+        t = -6 + sign * np.random.uniform(6, 7)
 
         if param is None:
             if a_bound in [1, 3]:
@@ -78,7 +77,7 @@ def get_affine_theta(method, param=None, a_bound=None):
 
 
 def random_affine_image(img, env_type, gen, phase, r_bound=[50, 60], sh_bound=[0.2, 0.5],
-                        sc_bound=[0.25, 0.3], t_bound=[3, 6]):
+                        sc_bound=[0.2, 0.25], t_bound=[3, 6]):
     """
     Args:
         img(np.array): HWC format

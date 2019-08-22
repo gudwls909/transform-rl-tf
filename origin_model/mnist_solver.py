@@ -14,11 +14,12 @@ from . import mnist_model
 
 class Network(object):
 
-    def __init__(self, sess, input_size=28, phase='test'):
+    def __init__(self, sess, input_size=28, learner='cnn', phase='test'):
         self.sess = sess
         self.phase = phase
         self.data_dir = 'MNIST_data'
         self.ckpt_dir = 'origin_model/checkpoint'
+        self.learner = learner
         self.batch_size = 128
         self.input_size = input_size
         self.image_c = 1
@@ -42,7 +43,7 @@ class Network(object):
         self.labels = tf.placeholder(tf.int64, [None], name='labels')
 
         # loss funciton
-        self.score = mnist_model.classifier(self.input_images, self.options, reuse=True, name='convnet')
+        self.score = mnist_model.classifier(self.input_images, self.options, learner=self.learner, name='convnet')
         self.pred = tf.nn.softmax(self.score, axis=1)
         self.loss = mnist_model.cls_loss(logits=self.score, labels=self.labels)
         self.optim = tf.train.AdamOptimizer(self.lr).minimize(self.loss)

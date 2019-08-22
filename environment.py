@@ -56,11 +56,11 @@ class MnistEnvironment(object):
 
         elif self.type == 'rst':
             self.action_size = 5
-            self.a_bound = np.array([[-15., 15.],
+            self.a_bound = np.array([[-20., 20.],
                                      [0.9, 1.1],
                                      [0.9, 1.1],
-                                     [-1., 1.],
-                                     [-1., 1.]])
+                                     [-2.5, 2.5],
+                                     [-2.5, 2.5]])
         else:  # self.type = 'rsst'
             self.action_size = 7
             self.a_bound = np.array([[-15., 15.],
