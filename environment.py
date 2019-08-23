@@ -54,13 +54,13 @@ class MnistEnvironment(object):
                                      [0.8, 1.2]])
         else:  # self.type = 'rsst'
             self.action_size = 7
-            self.a_bound = np.array([[-15., 15.],
-                                     [-0.1, 0.1],
-                                     [-0.1, 0.1],
+            self.a_bound = np.array([[-20., 20.],
+                                     [-0.2, 0.2],
+                                     [-0.2, 0.2],
                                      [0.9, 1.1],
                                      [0.9, 1.1],
-                                     [-1., 1],
-                                     [-1., 1]])
+                                     [-3., 3.],
+                                     [-3., 3.]])
 
         self.data_load()
 
@@ -74,7 +74,7 @@ class MnistEnvironment(object):
         # images.shape = (10000,28,28,1) or (10000,40,40,1), labels onehot=False
         self.train_images, self.train_labels = train_dataset
         self.test_images, self.test_labels = test_dataset
-        self.test_images, self.test_labels = self.test_images[:200], self.test_labels[:200]
+        self.test_images, self.test_labels = self.test_images[:10000], self.test_labels[:10000]
 
     def reset(self, idx, phase='train'):
         self.phase = phase
@@ -155,7 +155,7 @@ class MnistEnvironment(object):
                 terminal = False
         else:  # self.phase == 'test'
             # if unc_after < self.threshold or self.sequence >= self._max_episode_steps:
-            if self.max_probs[-1] > self.threshold or self.sequence >= self._max_episode_steps:
+            if self.max_probs[-1] > 0.995 or self.sequence >= self._max_episode_steps:
                 terminal = True
             else:
                 terminal = False
@@ -179,7 +179,7 @@ class MnistEnvironment(object):
 
         self.batch_imgs = util.make_grid(self.batch_imgs, len(self.batch_imgs), 2)
         # print(self.uncs, '\n')
-        print(self.accs, '\n')
+        # print(self.accs, '\n')
         if self.action_size == 1:
             tick_labels = [str([float(f'{p:.01f}') for p in param]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
