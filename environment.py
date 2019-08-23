@@ -74,7 +74,7 @@ class MnistEnvironment(object):
         # images.shape = (10000,28,28,1) or (10000,40,40,1), labels onehot=False
         self.train_images, self.train_labels = train_dataset
         self.test_images, self.test_labels = test_dataset
-        self.test_images, self.test_labels = self.test_images[:200], self.test_labels[:200]
+        self.test_images, self.test_labels = self.test_images[:10000], self.test_labels[:10000]
 
     def reset(self, idx, phase='train'):
         self.phase = phase
@@ -179,7 +179,7 @@ class MnistEnvironment(object):
 
         self.batch_imgs = util.make_grid(self.batch_imgs, len(self.batch_imgs), 2)
         # print(self.uncs, '\n')
-        print(self.accs, '\n')
+        # print(self.accs, '\n')
         if self.action_size == 1:
             tick_labels = [str([float(f'{p:.01f}') for p in param]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
