@@ -31,10 +31,10 @@ class Agent(object):
         self.epochs = args.epochs
         self._make_std()
 
-        self.num_actor = 32  # N
+        self.num_actor = 256  # N
         self.timesteps = 20  # T
-        self.gae_parameter = 0.95  # lambda
-        self.num_train = 16  # K
+        self.gae_parameter = 0.99  # lambda
+        self.num_train = 64  # K
 
         self.ENV = Environment(self.env, self.state_size, self.action_size)
         self.replay = ReplayMemory(self.state_size, self.batch_size, self.num_actor * self.timesteps)
@@ -206,13 +206,13 @@ class Agent(object):
                     scores.clear()
                     idx_list.clear()
 
-                if count % 50 == 0 and count >= self.num_actor:
+                if count % 300 == 0 and count >= self.num_actor:
                     print('epoch', e + 1, 'iter:', f'{count:05d}', ' score:', f'{scores2[-1]:.03f}',
                           ' actor loss', f'{losses2[-1][0]:.03f}', ' critic loss', f'{losses2[-1][1]:.03f}',
                           f'sequence: {self.env.sequence}')
-                if count % 200 == 0 and count >= self.num_actor:
+                if count % 300 == 0 and count >= self.num_actor:
                     self.ENV.render_worker(os.path.join(self.render_dir, f'{count:05d}.png'))
-                if count % 500 == 0:
+                if count % 1000 == 0:
                     self.save()
         pass
 
@@ -236,9 +236,9 @@ class Agent(object):
                     cor_before_lst.append(cor_before)
                     cor_after_lst.append(cor_after)
 
-                    if (idx + 1) % 1 == 0:
+                    if (idx + 1) % 200 == 0:
                         self.ENV.render_worker(os.path.join(self.play_dir, f'{(idx + 1):04d}.png'))
-                        print(f'{(idx + 1):04d} image score: {score}\n')
+                        print(f'{(idx + 1):04d} image score: {score}')
         print('====== NUMBER OF CORRECTION =======')
         print(f'before: {np.sum(cor_before_lst)}, after: {np.sum(cor_after_lst)}')
 
