@@ -14,6 +14,7 @@ parser.add_argument('--learner', default='cnn', type=str, help='cnn or stn')
 parser.add_argument('--epochs', default=30, type=int)
 parser.add_argument('--save_dir', default='rst', type=str)
 parser.add_argument('--env', default='r', type=str)
+parser.add_argument('--add55', default=False, action='store_true')
 parser.add_argument('--test', default=False, action='store_true')
 args = parser.parse_args()
 
@@ -32,8 +33,12 @@ def main(args):
     ### load data print('\n=== Load Data ===')
     env = args.env
     img_size = 40 if env in ['rst', 'rsst'] else 28
-    with open(join('data', 'affMNIST_28' + env + '.pickle'), 'rb') as f:
-        train_dataset, test_dataset = pickle.load(f)
+    if not args.add55:
+        with open(join('data', 'affMNIST_28' + env + '.pickle'), 'rb') as f:
+            train_dataset, test_dataset = pickle.load(f)
+    else:
+        with open(join('data', 'affMNIST_28' + env + '_add56.pickle'), 'rb') as f:
+            train_dataset, test_dataset = pickle.load(f)
 
     train_images, train_labels = train_dataset[0], train_dataset[1]
     test_images, test_labels = test_dataset[0], test_dataset[1]

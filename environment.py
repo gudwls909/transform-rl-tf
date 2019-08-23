@@ -38,8 +38,8 @@ class MnistEnvironment(object):
         elif self.type == 'rsc':
             self.action_size = 3
             self.a_bound = np.array([[-30., 30.],
-                                     [0.8, 1.2],
-                                     [0.8, 1.2]])
+                                     [0.9, 1.1],
+                                     [0.9, 1.1]])
         elif self.type == 'rsh':
             self.action_size = 3
             self.a_bound = np.array([[-30., 30.],
@@ -50,17 +50,17 @@ class MnistEnvironment(object):
             self.a_bound = np.array([[-30., 30.],
                                      [-0.2, 0.2],
                                      [-0.2, 0.2],
-                                     [0.8, 1.2],
-                                     [0.8, 1.2]])
+                                     [0.9, 1.1],
+                                     [0.9, 1.1]])
         else:  # self.type = 'rsst'
             self.action_size = 7
-            self.a_bound = np.array([[-15., 15.],
-                                     [-0.1, 0.1],
-                                     [-0.1, 0.1],
+            self.a_bound = np.array([[-30., 30.],
+                                     [-0.2, 0.2],
+                                     [-0.2, 0.2],
                                      [0.9, 1.1],
                                      [0.9, 1.1],
-                                     [-1., 1],
-                                     [-1., 1]])
+                                     [-4., 4.],
+                                     [-4., 4.]])
 
         self.data_load()
 
