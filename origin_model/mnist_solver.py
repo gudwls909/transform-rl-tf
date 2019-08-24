@@ -14,11 +14,11 @@ from . import mnist_model
 
 class Network(object):
 
-    def __init__(self, sess, input_size=28, learner='cnn', phase='test'):
+    def __init__(self, sess, input_size=28, learner='cnn', phase='test', badBlackbox=0):
         self.sess = sess
         self.phase = phase
         self.data_dir = 'MNIST_data'
-        self.ckpt_dir = 'origin_model/checkpoint'
+        self.ckpt_dir = 'origin_model/checkpoint' + str(badBlackbox) if badBlackbox else 'origin_model/checkpoint'
         self.learner = learner
         self.batch_size = 128
         self.input_size = input_size

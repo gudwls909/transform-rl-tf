@@ -16,7 +16,7 @@ from scipy.stats import norm
 class Agent(object):
     def __init__(self, args, sess):
         self.sess = sess
-        self.model = Network(sess, phase='test')  # pre-trained mnist accuracy model
+        self.model = Network(sess, phase='test', badBlackbox=args.badBlackbox)  # pre-trained mnist accuracy model
         self.env = MnistEnvironment(self.model, args.env, args.reward_type)
         self.state_size = self.env.state_size
         self.state_shape = self.env.state_shape
