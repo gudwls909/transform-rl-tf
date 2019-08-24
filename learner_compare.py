@@ -31,7 +31,7 @@ def main(args):
 
     ### load data print('\n=== Load Data ===')
     env = args.env
-    img_size = 40 if env in ['rst', 'rsst'] else 28
+    img_size = 40 if env in ['rsst'] else 28
     with open(join('data', 'affMNIST_28' + env + '.pickle'), 'rb') as f:
         train_dataset, test_dataset = pickle.load(f)
 
@@ -53,7 +53,7 @@ def main(args):
     sess = tf.Session(config=config)
 
     print(f'\n=== Start Test, {args.learner} learner ===')
-    model = Network(sess, input_size=img, learner=args.learner, phase='test')
+    model = Network(sess, input_size=img_size, learner=args.learner, phase='test')
     model.ckpt_dir = join(args.save_dir, 'checkpoint')
     model.batch_size = 32
     model.checkpoint_load()
