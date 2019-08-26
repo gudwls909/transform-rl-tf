@@ -5,7 +5,7 @@ from os.path import join
 # from tensorflow.examples.tutorials.mnist import input_data
 
 import util
-import affMNIST_generator
+import affine_generator
 
 
 class MnistEnvironment(object):
@@ -26,11 +26,11 @@ class MnistEnvironment(object):
         self.threshold = 0.99 if self.type == 'r' else 0.99
         self._max_episode_steps = 10
         if env_type == 'rsst':
-            self.state_shape = [40, 40, 1]
-            self.state_size = 1600
+            self.state_shape = [50, 50, 3]
+            self.state_size = 7500
         else:
-            self.state_shape = [28, 28, 1]
-            self.state_size = 784
+            self.state_shape = [32, 32, 3]
+            self.state_size = 32*32*3
 
         if self.type == 'r':
             self.action_size = 1
@@ -65,13 +65,13 @@ class MnistEnvironment(object):
         self.data_load()
 
     def data_load(self):
-        if not os.path.isfile('data/affMNIST_28' + self.type + '.pickle'):
+        if not os.path.isfile('data/affCIFAR_32' + self.type + '.pickle'):
             print("=== No Train Data File Exist, Let's Generate it first ===")
-            affMNIST_generator.main(self.type)
-        with open(join('data', 'affMNIST_28' + self.type + '.pickle'), 'rb') as f:
+            affine_generator.main(self.type)
+        with open(join('data', 'affCIFAR_32' + self.type + '.pickle'), 'rb') as f:
             train_dataset, test_dataset = pickle.load(f)
 
-        # images.shape = (10000,28,28,1) or (10000,40,40,1), labels onehot=False
+        # images.shape = (10000,32,32,1) or (10000,50,50,1), labels onehot=False
         self.train_images, self.train_labels = train_dataset
         self.test_images, self.test_labels = test_dataset
         self.test_images, self.test_labels = self.test_images[:10000], self.test_labels[:10000]
@@ -79,7 +79,7 @@ class MnistEnvironment(object):
     def reset(self, idx, phase='train'):
         self.phase = phase
         if self.phase == 'train':
-            self.img = self.train_images[idx]  # 28*28*1
+            self.img = self.train_images[idx]  # 32*32*1
             self.label = self.train_labels[idx]
         else:  # self.phase == 'test'
             self.img = self.test_images[idx]
@@ -100,10 +100,10 @@ class MnistEnvironment(object):
         else:  # self.type == 'rsst'
             self.del_params = [[0., 0., 0., 1., 1., 0., 0.]]
 
-        img_28size = util.theta2affine_img(self.img, self.del_thetas[-1], (28, 28))
-        # prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
+        img_32size = util.theta2affine_img(self.img, self.del_thetas[-1], (32, 32))
+        # prob_set = util.all_prob(self.model, np.expand_dims(img_32size, axis=0), self.mc)
         # self.uncs = [util.get_mutual_informations(prob_set)[0]]  # save the uncertainty
-        prob = np.clip(self.model.test(np.expand_dims(img_28size, axis=0))[0], 0, 0.9999)
+        prob = np.clip(self.model.test(np.expand_dims(img_32size, axis=0))[0], 0, 0.9999)
         self.accs = [prob[self.label]]
         # self.label_hats = [prob_set.mean(axis=0).argmax(axis=1)[0]]  # save predicted label
         self.label_hats = [prob.argmax()]
@@ -124,12 +124,12 @@ class MnistEnvironment(object):
         next_img = util.theta2affine_img(self.img, del_theta)
 
         # calculate uncertainty
-        img_28size = util.theta2affine_img(self.img, del_theta, (28, 28))
-        # prob_set = util.all_prob(self.model, np.expand_dims(img_28size, axis=0), self.mc)
+        img_32size = util.theta2affine_img(self.img, del_theta, (32, 32))
+        # prob_set = util.all_prob(self.model, np.expand_dims(img_32size, axis=0), self.mc)
         # unc_after = util.get_mutual_informations(prob_set)[0]
         # unc_before = self.uncs[-1]
         acc_before = self.accs[-1]
-        prob = self.model.test(np.expand_dims(img_28size, axis=0))[0]
+        prob = self.model.test(np.expand_dims(img_32size, axis=0))[0]
         acc_after = np.clip(prob[self.label], 0, 0.9999)
         rew_prob = -np.log(1-acc_after)
         rew_prob_before = -np.log(1-acc_before)

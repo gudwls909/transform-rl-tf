@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageFilter, ImageEnhance
 
 '''
-np2pil input img shape: [28,28,1]
-pil3np output img shpae: [28,28,1]
+np2pil input img shape: [32,32,1]
+pil3np output img shpae: [32,32,1]
 '''
-np2pil = lambda img: Image.fromarray((img.squeeze(2)*255).astype(np.uint8))
-pil2np = lambda img: np.expand_dims((np.array(img) / 255.), axis=2)
+np2pil = lambda img: Image.fromarray((img*255.).astype(np.uint8))
+pil2np = lambda img: np.array(img) / 255.
 pil_rotate = lambda img, angle: img.rotate(angle)
 pil_blur = lambda img, radius: img.filter(ImageFilter.GaussianBlur(radius))
 pil_sharpen = lambda img, radius: img.filter(ImageFilter.UnsharpMask(radius))
@@ -91,7 +91,7 @@ def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[0.2, 0.5], sc
     # translation : move back (0,0) to be the left-upper corner of the image
     t2_mtx = theta2mtx(get_affine_theta('translation', param=[-img.shape[1]/2, -img.shape[0]/2]))
 
-    # translation : move mnist in (40,40) size black image
+    # translation : move mnist in (50,50) size black image
     t3_mtx = theta2mtx(get_affine_theta('translation', a_bound=t_bound))
 
     # integrated affine transformation
@@ -112,9 +112,9 @@ def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[0.2, 0.5], sc
     aff_theta = affine_mtx[:2, :].flatten()
     pil_img = np2pil(img)
     if env_type == 'rsst':
-        pil_img = pil_img.transform((40,40), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
+        pil_img = pil_img.transform((50,50), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
     else:
-        pil_img = pil_img.transform((28,28), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
+        pil_img = pil_img.transform((32,32), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
     img = pil2np(pil_img)
 
     return img
@@ -125,7 +125,7 @@ def param2theta(param, env):
     Args:
         param(np.array): [r, sh1, sh2, sc1, sc2].shape = (5,)
     """
-    img_size = 40 if env == 'rsst' else 28
+    img_size = 50 if env == 'rsst' else 32 
 
     # translation : move center of the image to (0,0)
     t1_mtx = theta2mtx(get_affine_theta('translation', param=[img_size/2, img_size/2]))
@@ -157,7 +157,7 @@ def theta2affine_img(img, theta, resize=None):
         img(np.array): HWC format
         theta(np.array): 6 parameters for affine transformation, size=(6,)
     Returns:
-        img(np.array): HWC format with size (40,40,1) if resize=None
+        img(np.array): HWC format with size (50,50,1) if resize=None
     """
     pil_img = np2pil(img)
     pil_img = pil_img.transform(pil_img.size, Image.AFFINE, theta, resample=Image.BICUBIC)
@@ -210,19 +210,19 @@ def integrate_thetas(thetas):
 
 def make_grid(batch, nrow=8, padding=2):
     '''
-    batch: size = [batch_size, 28, 28 ,1]
+    batch: size = [batch_size, H, W, C]
     nrow: Number of images displayed in each row of the grid
     '''
-    batch = batch.squeeze(axis=3)
-    ds = batch.shape[1] # data_size
-    ncol = np.ceil(batch.shape[0]/nrow).astype(np.int)
-    grid = np.ones([(ds+padding)*ncol-padding, (ds+padding)*nrow-padding])
-
+    bs, H, W, C = batch.shape
+    ncol = np.ceil(bs/nrow).astype(np.int)
+    grid = np.ones([(H+padding)*ncol-padding, (W+padding)*nrow-padding, C])
+    
     for i in range(batch.shape[0]):
         row_idx, col_idx = i%nrow, i//nrow
-        grid[col_idx*(padding+ds):col_idx*(padding+ds) + ds,
-             row_idx*(padding+ds):row_idx*(padding+ds) + ds] = batch[i]
-
+        grid[col_idx*(padding+H):col_idx*(padding+H) + H, 
+             row_idx*(padding+W):row_idx*(padding+W) + W,:] = batch[i]
+    
+    grid = grid.squeeze(axis=2) if C==1 else grid
     return grid
 
 

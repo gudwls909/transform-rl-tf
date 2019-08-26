@@ -7,7 +7,7 @@ from math import pi
 from environment import MnistEnvironment, Environment
 from ppo.replay_memory import ReplayMemory
 from ppo.ppo_model import PPO
-from origin_model.mnist_solver import Network
+from cifar10.solver import Network
 
 import time
 from scipy.stats import norm
@@ -49,8 +49,8 @@ class Agent(object):
         # initialize
         sess.run(tf.global_variables_initializer())  # tensorflow graph가 다 만들어지고 난 후에 해야됨
 
-        # load pre-trained mnist model
-        self.env.model.checkpoint_load()
+#         # load pre-trained mnist model
+#         self.env.model.checkpoint_load()
 
         self.saver = tf.train.Saver()
 
