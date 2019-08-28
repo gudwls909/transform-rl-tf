@@ -10,14 +10,15 @@ from origin_model.mnist_solver import Network
 
 parser = argparse.ArgumentParser(description="Pendulum")
 parser.add_argument('--gpu_number', default='0', type=str)
-parser.add_argument('--learner', default='cnn', type=str, help='cnn or stn')
+parser.add_argument('--learner', default='stn', type=str, help='cnn or stn')
 parser.add_argument('--epochs', default=30, type=int)
-parser.add_argument('--save_dir', default='rst', type=str)
-parser.add_argument('--env', default='rst', type=str)
+parser.add_argument('--save_dir', default='r', type=str)
+parser.add_argument('--env', default='r', type=str)
+parser.add_argument('--data', default='cifar10', type=str)
 parser.add_argument('--test', default=False, action='store_true')
 args = parser.parse_args()
 
-args.save_dir = os.path.join('save', args.learner, args.save_dir)
+args.save_dir = os.path.join('save', args.learner, args.data, args.save_dir)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_number
 
@@ -31,9 +32,16 @@ def main(args):
 
     ### load data print('\n=== Load Data ===')
     env = args.env
-    img_size = 40 if env in ['rsst'] else 28
-    with open(join('data', 'affMNIST_28' + env + '.pickle'), 'rb') as f:
-        train_dataset, test_dataset = pickle.load(f)
+    if args.data == 'mnist':
+        img_size = 40 if env in ['rsst'] else 28
+        with open(join('data', 'affMNIST_28' + env + '.pickle'), 'rb') as f:
+            train_dataset, test_dataset = pickle.load(f)
+    elif args.data == 'cifar10':
+        img_size = 50 if env in ['rsst'] else 32
+        with open(join('data', 'affCIFAR_32' + env + '.pickle'), 'rb') as f:
+            train_dataset, test_dataset = pickle.load(f)
+    else:
+        raise TypeError('dataset type error')
 
     train_images, train_labels = train_dataset[0], train_dataset[1]
     test_images, test_labels = test_dataset[0], test_dataset[1]
@@ -41,7 +49,10 @@ def main(args):
     ### train
     if not args.test:
         print(f'\n=== Start Train, {args.learner} learner ===')
-        model = Network(sess, input_size=img_size, learner=args.learner, phase='train')
+        if args.data == 'mnist':
+            model = Network(sess, input_size=img_size, learner=args.learner, phase='train')
+        else:
+            model = Network(sess, input_size=img_size, learner=args.learner, phase='train', image_c=3)
         model.ckpt_dir = join(args.save_dir, 'checkpoint')
         model.epochs = args.epochs
         model.batch_size = 32
@@ -53,7 +64,10 @@ def main(args):
     sess = tf.Session(config=config)
 
     print(f'\n=== Start Test, {args.learner} learner ===')
-    model = Network(sess, input_size=img_size, learner=args.learner, phase='test')
+    if args.data == 'mnist':
+        model = Network(sess, input_size=img_size, learner=args.learner, phase='train')
+    else:
+        model = Network(sess, input_size=img_size, learner=args.learner, phase='train', image_c=3)
     model.ckpt_dir = join(args.save_dir, 'checkpoint')
     model.batch_size = 32
     model.checkpoint_load()

@@ -23,7 +23,7 @@ class MnistEnvironment(object):
             raise TypeError('rew type error')
         self.mc = 20
         # self.threshold = 3e-3 if self.type == 'r' else 8e-3
-        self.threshold = 0.99 if self.type == 'r' else 0.99
+        self.threshold = 0.95 if self.type == 'r' else 0.95
         self._max_episode_steps = 10
         if env_type == 'rsst':
             self.state_shape = [50, 50, 3]
@@ -43,20 +43,20 @@ class MnistEnvironment(object):
         elif self.type == 'rsh':
             self.action_size = 3
             self.a_bound = np.array([[-30., 30.],
-                                     [-0.3, 0.3],
-                                     [-0.3, 0.3]])
+                                     [-0.1, 0.1],
+                                     [-0.1, 0.1]])
         elif self.type == 'rss':
             self.action_size = 5
             self.a_bound = np.array([[-30., 30.],
-                                     [-0.3, 0.3],
-                                     [-0.3, 0.3],
+                                     [-0.1, 0.1],
+                                     [-0.1, 0.1],
                                      [0.9, 1.1],
                                      [0.9, 1.1]])
         else:  # self.type = 'rsst'
             self.action_size = 7
             self.a_bound = np.array([[-30., 30.],
-                                     [-0.2, 0.2],
-                                     [-0.2, 0.2],
+                                     [-0.1, 0.1],
+                                     [-0.1, 0.1],
                                      [0.9, 1.1],
                                      [0.9, 1.1],
                                      [-4., 4],
@@ -155,7 +155,7 @@ class MnistEnvironment(object):
                 terminal = False
         else:  # self.phase == 'test'
             # if unc_after < self.threshold or self.sequence >= self._max_episode_steps:
-            if self.max_probs[-1] > 0.995 or self.sequence >= self._max_episode_steps:
+            if self.max_probs[-1] > 0.95 or self.sequence >= self._max_episode_steps:
                 terminal = True
             else:
                 terminal = False
@@ -180,21 +180,22 @@ class MnistEnvironment(object):
         self.batch_imgs = util.make_grid(self.batch_imgs, len(self.batch_imgs), 2)
         # print(self.uncs, '\n')
         # print(self.accs, '\n')
+        classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
         if self.action_size == 1:
-            tick_labels = [str([float(f'{p:.01f}') for p in param]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
+            tick_labels = [str([float(f'{p:.01f}') for p in param]) + f'\n{unc:.04f}\n{classes[label_hat]}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
                            # in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
                            in zip(self.del_params, self.accs, self.label_hats, self.rewards)]
         elif self.action_size == 3:
             tick_labels = [str([float(f'{p:.01f}') for p in param[:1]]) + '\n' +
-                           str([float(f'{p:.03f}') for p in param[1:3]]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
+                           str([float(f'{p:.03f}') for p in param[1:3]]) + f'\n{unc:.04f}\n{classes[label_hat]}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
                            # in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
                            in zip(self.del_params, self.accs, self.label_hats, self.rewards)]
         elif self.action_size == 5:
             tick_labels = [str([float(f'{p:.01f}') for p in param[:1]]) + '\n' +
                            str([float(f'{p:.03f}') for p in param[1:3]]) + '\n' +
-                           str([float(f'{p:.03f}') for p in param[3:5]]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
+                           str([float(f'{p:.03f}') for p in param[3:5]]) + f'\n{unc:.04f}\n{classes[label_hat]}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
                            # in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
                            in zip(self.del_params, self.accs, self.label_hats, self.rewards)]
@@ -202,7 +203,7 @@ class MnistEnvironment(object):
             tick_labels = [str([float(f'{p:.01f}') for p in param[:1]]) + '\n' +
                            str([float(f'{p:.03f}') for p in param[1:3]]) + '\n' +
                            str([float(f'{p:.03f}') for p in param[3:5]]) + '\n' +
-                           str([float(f'{p:.01f}') for p in param[5:7]]) + f'\n{unc:.04f}\n{label_hat}\n{reward:.04f}'
+                           str([float(f'{p:.01f}') for p in param[5:7]]) + f'\n{unc:.04f}\n{classes[label_hat]}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)
                            # in zip(self.del_params, self.uncs, self.label_hats, self.rewards)]
                            in zip(self.del_params, self.accs, self.label_hats, self.rewards)]

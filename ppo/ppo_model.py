@@ -52,7 +52,10 @@ class PPO(object):
             conv2 = tf.layers.conv2d(inputs=pool1, filters=64, kernel_size=[3, 3], padding='SAME',
                                      activation=tf.nn.relu, trainable=trainable)
             pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2, padding='SAME')
-            flat = tf.reshape(pool2, [-1, self.state_shape[0] * self.state_shape[1] * 4])
+            # conv3 = tf.layers.conv2d(inputs=pool2, filters=128, kernel_size=[3, 3], padding='SAME',
+            #                         activation=tf.nn.relu, trainable=trainable)
+            # pool3 = tf.layers.max_pooling2d(inputs=conv3, pool_size=[2, 2], strides=2, padding='SAME')
+            flat = tf.layers.flatten(pool2)
             dense3 = tf.layers.dense(inputs=flat, units=32, activation=tf.nn.relu, trainable=trainable, name='test')
 
             # with tf.variable_scope('test', reuse=tf.AUTO_REUSE):
@@ -80,7 +83,10 @@ class PPO(object):
             conv2 = tf.layers.conv2d(inputs=pool1, filters=64, kernel_size=[3, 3], padding='SAME',
                                      activation=tf.nn.relu, trainable=trainable)
             pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2, padding='SAME')
-            flat = tf.reshape(pool2, [-1, self.state_shape[0] * self.state_shape[1] * 4])
+            # conv3 = tf.layers.conv2d(inputs=pool2, filters=128, kernel_size=[3, 3], padding='SAME',
+            #                         activation=tf.nn.relu, trainable=trainable)
+            # pool3 = tf.layers.max_pooling2d(inputs=conv3, pool_size=[2, 2], strides=2, padding='SAME')
+            flat = tf.layers.flatten(pool2)
             dense1 = tf.layers.dense(inputs=flat, units=32, activation=tf.nn.relu, trainable=trainable, name='test2')
 
             # with tf.variable_scope('test2', reuse=True):

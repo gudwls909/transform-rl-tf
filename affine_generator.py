@@ -25,6 +25,10 @@ def main(env_type):
 
     # generate affine CIFAR10
     print('=== generate affine CIFAR10.... ===')
+
+    if env_type == 'rsst':
+        H, W = 50, 50
+
     train_inputs = np.zeros([B_train, H, W, C])
     test_inputs = np.zeros([B_test, H, W, C])
 

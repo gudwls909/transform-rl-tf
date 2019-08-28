@@ -14,7 +14,7 @@ from . import mnist_model
 
 class Network(object):
 
-    def __init__(self, sess, input_size=28, learner='cnn', phase='test'):
+    def __init__(self, sess, input_size=28, learner='cnn', phase='test', image_c=1):
         self.sess = sess
         self.phase = phase
         self.data_dir = 'MNIST_data'
@@ -22,7 +22,7 @@ class Network(object):
         self.learner = learner
         self.batch_size = 128
         self.input_size = input_size
-        self.image_c = 1
+        self.image_c = image_c
         self.label_n = 10
         self.nf = 32
         self.lr = 1e-4

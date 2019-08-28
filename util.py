@@ -73,7 +73,7 @@ def get_affine_theta(method, param=None, a_bound=None):
     return theta
 
 
-def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[0.2, 0.5], sc_bound=[0.1, 0.2], t_bound=[3, 6]):
+def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[0.1, 0.2], sc_bound=[0.1, 0.2], t_bound=[3, 6]):
     """
     Args:
         img(np.array): HWC format
