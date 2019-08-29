@@ -5,19 +5,25 @@ from stn import spatial_transformer_network as transformer
 
 def classifier(images, options, learner='cnn', name='classifier'):
     with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-        x = relu(conv2d(images, options.nf, ks=5, s=1, name='conv1'))  # 28*28*nf
-        x = relu(conv2d(x, 2 * options.nf, ks=3, s=2, name='conv2'))  # 14*14*(2*nf)
+        #         x = relu(conv2d(images, options.nf, ks=5, s=1, name='conv1'))  # 28*28*nf
+        #         if learner == 'stn':
+        #             theta = linear(tf.reshape(x, [-1, int(options.input_size * options.input_size * options.nf)]), 128,
+        #                            name='loc_linear1')
+        #             theta = linear(theta, 6, name='loc_linear2')
+        #             x = transformer(x, theta)
 
         if learner == 'stn':
-            theta = linear(tf.reshape(x, [-1, int(options.input_size * options.input_size * options.nf / 2)]), 128,
-                           name='loc_linear1')
+            theta = linear(tf.layers.flatten(images), 128, name='loc_linear1')
             theta = linear(theta, 6, name='loc_linear2')
-            x = transformer(x, theta)
+            x = transformer(images, theta, [options.input_size, options.input_size])
+            x = relu(conv2d(x, options.nf, ks=5, s=1, name='conv1'))  # 28*28*nf
+        else:
+            x = relu(conv2d(images, options.nf, ks=5, s=1, name='conv1'))  # 28*28*nf
 
+        x = relu(conv2d(x, 2 * options.nf, ks=3, s=2, name='conv2'))  # 14*14*(2*nf)
         x = relu(conv2d(x, 4 * options.nf, ks=3, s=2, name='conv3'))  # 7*7*(4*nf)
 
-        x = linear(tf.reshape(x, [-1, int(options.input_size * options.input_size * options.nf / 4)]), 128,
-                   name='linear1')
+        x = linear(tf.layers.flatten(x), 128, name='linear1')
         x = dropout(x, 0.5, options.phase)
         x = linear(x, options.label_n, name='linear2')
         return x
