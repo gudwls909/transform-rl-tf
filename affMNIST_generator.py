@@ -9,9 +9,9 @@ import util
 
 
 def main(env_type, gen):
-    img_size = 40 if env_type == 'rsst' or env_type == 'rst' else 28
-    # gen = np.reshape(np.array(gen), (4, 3)).tolist()
-    gen = [gen[3*i:3*i+3] for i in range(8)]
+    img_size = 40 if env_type in ['rsst', 'rst'] else 28
+    gen = np.reshape(np.array(gen), (-1, 3)).tolist()
+    # gen = [gen[3*i:3*i+3] for i in range(int(len(gen)/3))]
 
     # load MNIST
     print('=== load MNIST.... ===')
@@ -47,7 +47,7 @@ def main(env_type, gen):
 
     # save affMNIST
     print('=== save affine MNIST... ===')
-    with open(join('data', 'affMNIST_28' + env_type + '.pickle'), 'wb') as f:
+    with open(join('data', 'affMNIST_28' + env_type + '16 except ' + gen.shape[0] + '.pickle'), 'wb') as f:
         pickle.dump(affMNIST_dataset, f)
 
 

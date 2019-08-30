@@ -108,7 +108,8 @@ class Network(object):
 
                 if count % 100 == 0:
                     valid_acc, _, _ = self.test_accuracy(test_images, test_labels)
-                    print(f'Epoch: {ep + 1}, Iter: {count:04d}, Best Acc: {valid_acc:.05f}, Loss: {loss:.04f}')
+                    if count % 300 == 0:
+                        print(f'Epoch: {ep + 1}, Iter: {count:04d}, Best Acc: {valid_acc:.05f}, Loss: {loss:.04f}')
 
                     if valid_acc > best_acc:
                         self.checkpoint_save()
