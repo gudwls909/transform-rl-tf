@@ -5,12 +5,12 @@ from stn import spatial_transformer_network as transformer
 
 def classifier(images, options, learner='cnn', name='classifier'):
     with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-        #         x = relu(conv2d(images, options.nf, ks=5, s=1, name='conv1'))  # 28*28*nf
-        #         if learner == 'stn':
-        #             theta = linear(tf.reshape(x, [-1, int(options.input_size * options.input_size * options.nf)]), 128,
-        #                            name='loc_linear1')
-        #             theta = linear(theta, 6, name='loc_linear2')
-        #             x = transformer(x, theta)
+#         x = relu(conv2d(images, options.nf, ks=5, s=1, name='conv1'))  # 28*28*nf
+#         if learner == 'stn':
+#             theta = linear(tf.reshape(x, [-1, int(options.input_size * options.input_size * options.nf)]), 128,
+#                            name='loc_linear1')
+#             theta = linear(theta, 6, name='loc_linear2')
+#             x = transformer(x, theta)
 
         if learner == 'stn':
             theta = linear(tf.reshape(images, [-1, options.input_size * options.input_size]), 128, name='loc_linear1')
