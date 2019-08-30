@@ -21,7 +21,7 @@ class MnistEnvironment(object):
         else:
             print(rew_type)
             raise TypeError('rew type error')
-        self.gen = np.reshape(np.array(gen), (-1, 3)).tolist()
+        self.gen = gen
         self.mc = 20
         # self.threshold = 3e-3 if self.type == 'r' else 8e-3
         self.threshold = 0.99 if self.type == 'r' else 0.99
@@ -164,7 +164,7 @@ class MnistEnvironment(object):
                 terminal = False
         else:  # self.phase == 'test'
             # if unc_after < self.threshold or self.sequence >= self._max_episode_steps:
-            if self.max_probs[-1] > self.threshold or self.sequence >= self._max_episode_steps:
+            if self.max_probs[-1] > 0.995 or self.sequence >= self._max_episode_steps:
                 terminal = True
             else:
                 terminal = False
