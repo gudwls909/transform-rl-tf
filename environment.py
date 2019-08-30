@@ -21,7 +21,7 @@ class MnistEnvironment(object):
         else:
             print(rew_type)
             raise TypeError('rew type error')
-        self.gen = gen
+        self.gen = np.reshape(np.array(gen), (-1, 3)).tolist()
         self.mc = 20
         # self.threshold = 3e-3 if self.type == 'r' else 8e-3
         self.threshold = 0.99 if self.type == 'r' else 0.99
@@ -56,11 +56,11 @@ class MnistEnvironment(object):
 
         elif self.type == 'rst':
             self.action_size = 5
-            self.a_bound = np.array([[-25., 25.],
+            self.a_bound = np.array([[-20., 20.],
                                      [0.9, 1.1],
                                      [0.9, 1.1],
-                                     [-3., 3.],
-                                     [-3., 3.]])
+                                     [-2.5, 2.5],
+                                     [-2.5, 2.5]])
         else:  # self.type = 'rsst'
             self.action_size = 7
             self.a_bound = np.array([[-15., 15.],
