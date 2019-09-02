@@ -11,10 +11,17 @@ you can currently train the RL model in
   - `rsst` refers to 'rotate, shear, scale, translate'
 <br>
 
-<b>to train the model</b>
+<b>to train the model (MNIST)</b>
 ```
 $ python main.py --algorithm=ppo --gpu_number=0 --epochs=1 --save_dir=r_save --env=r
 ```
+<br>
+for real-world dataset,
+
+```
+$ python main.py --algorithm=ppo --gpu_number=0 --epochs=1 --save_dir=r_save --env=r --data_type=cifar10
+```
+
 after running the command, 
 - dataset in reference to the affined (rotate in the upper case) MNIST is generated in `data` directory
 - all the savings(such as image or checkpoint) are saved in `save/ppo/r_save` directory
