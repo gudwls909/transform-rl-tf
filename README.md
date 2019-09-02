@@ -15,7 +15,7 @@ you can currently train the RL model in
 ```
 $ python main.py --algorithm=ppo --gpu_number=0 --epochs=1 --save_dir=r_save --env=r
 ```
-<br>
+
 for real-world dataset,
 
 ```
