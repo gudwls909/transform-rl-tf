@@ -7,10 +7,11 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import util
 
-parser = argparse.ArgumentParser(description="Pendulum")
-parser.add_argument('--add55', default=False, action='store_true')
-parser.add_argument('--env', default='r', type=str)
-args = parser.parse_args()
+# use when you make add55 MNIST file
+#parser = argparse.ArgumentParser(description="Pendulum")
+#parser.add_argument('--add55', default=False, action='store_true')
+#parser.add_argument('--env', default='r', type=str)
+#args = parser.parse_args()
 
 np2pil = lambda img: Image.fromarray((img.squeeze(2)*255).astype(np.uint8))
 pil2np = lambda img: np.expand_dims((np.array(img) / 255.), axis=2)
@@ -83,4 +84,4 @@ def main(env_type, add55=False):
 
 
 if __name__ == '__main__':
-    main(args.env, args.add55)
+    main(env, add55)
