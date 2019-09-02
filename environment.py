@@ -9,8 +9,10 @@ import affine_generator
 
 
 class MnistEnvironment(object):
-    def __init__(self, model, env_type, rew_type):
+    def __init__(self, model, env_type, rew_type, data_type='cifar10'):
         self.model = model
+        self.data_type = data_type
+
         if env_type in ['r', 'rsc', 'rsh', 'rss', 'rsst']:
             self.type = env_type
         else:
@@ -65,16 +67,23 @@ class MnistEnvironment(object):
         self.data_load()
 
     def data_load(self):
-        if not os.path.isfile('data/affCIFAR_32' + self.type + '.pickle'):
+        if self.data_type == 'cifar10':
+            aff_filename = 'affCIFAR_32'
+        elif self.data_type == 'svhn':
+            aff_filename = 'affSVHN_32'
+        elif self.data_type == 'stl10':
+            aff_filenmae = 'affSTL_96'
+            
+        if not os.path.isfile('data/' + aff_filename + self.type + '.pickle'):
             print("=== No Train Data File Exist, Let's Generate it first ===")
-            affine_generator.main(self.type)
-        with open(join('data', 'affCIFAR_32' + self.type + '.pickle'), 'rb') as f:
+            affine_generator.main(self.type, self.data_type)
+        with open(join('data', aff_filename + self.type + '.pickle'), 'rb') as f:
             train_dataset, test_dataset = pickle.load(f)
 
         # images.shape = (10000,32,32,1) or (10000,50,50,1), labels onehot=False
         self.train_images, self.train_labels = train_dataset
         self.test_images, self.test_labels = test_dataset
-        self.test_images, self.test_labels = self.test_images[:10000], self.test_labels[:10000]
+        # self.test_images, self.test_labels = self.test_images[:10000], self.test_labels[:10000]
 
     def reset(self, idx, phase='train'):
         self.phase = phase
@@ -180,7 +189,14 @@ class MnistEnvironment(object):
         self.batch_imgs = util.make_grid(self.batch_imgs, len(self.batch_imgs), 2)
         # print(self.uncs, '\n')
         # print(self.accs, '\n')
-        classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+        if self.data_type == 'cifar10':
+            classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+        elif self.data_type == 'svhn':
+            classes = [1,2,3,4,5,6,7,8,9,0]
+        elif self.data_type == 'stl10':
+            classes = ['airplane', 'bird', 'car', 'cat', 'deer', 'dog', 'horse', 'monkey', 'ship', 'truck']
+
         if self.action_size == 1:
             tick_labels = [str([float(f'{p:.01f}') for p in param]) + f'\n{unc:.04f}\n{classes[label_hat]}\n{reward:.04f}'
                            for (param, unc, label_hat, reward)

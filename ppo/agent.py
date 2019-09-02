@@ -7,7 +7,10 @@ from math import pi
 from environment import MnistEnvironment, Environment
 from ppo.replay_memory import ReplayMemory
 from ppo.ppo_model import PPO
-from cifar10.solver import Network
+
+from cifar10.solver import Network as cifar_Network
+from svhn.solver import Network as svhn_Network
+from stl10.solver import Network as stl_Network
 
 import time
 from scipy.stats import norm
@@ -16,8 +19,13 @@ from scipy.stats import norm
 class Agent(object):
     def __init__(self, args, sess):
         self.sess = sess
-        self.model = Network(sess, phase='test')  # pre-trained mnist accuracy model
-        self.env = MnistEnvironment(self.model, args.env, args.reward_type)
+        if args.data_type == 'cifar10':
+            self.model = cifar_Network(sess, phase='test')  # pre-trained cifar accuracy model
+        elif args.data_type == 'svhn':
+            self.model = svhn_Network(sess, phase='test')  # pre-trained svhn accuracy model
+        elif args.data_type == 'stl10':
+            self.model = stl_Network(sess, phase='test')  # pre-trained stl accuracy model
+        self.env = MnistEnvironment(self.model, args.env, args.reward_type, args.data_type)
         self.state_size = self.env.state_size
         self.state_shape = self.env.state_shape
         self.action_size = self.env.action_size

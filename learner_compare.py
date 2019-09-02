@@ -36,10 +36,22 @@ def main(args):
         img_size = 40 if env in ['rsst'] else 28
         with open(join('data', 'affMNIST_28' + env + '.pickle'), 'rb') as f:
             train_dataset, test_dataset = pickle.load(f)
+
     elif args.data == 'cifar10':
         img_size = 50 if env in ['rsst'] else 32
         with open(join('data', 'affCIFAR_32' + env + '.pickle'), 'rb') as f:
             train_dataset, test_dataset = pickle.load(f)
+
+    elif args.data == 'svhn':
+        img_size = 50 if env in ['rsst'] else 32
+        with open(join('data', 'affSVHN_32' + env + '.pickle'), 'rb') as f:
+            train_dataset, test_dataset = pickle.load(f)
+
+    elif args.data == 'stl10':
+        img_size = 110 if env in ['rsst'] else 96
+        with open(join('data', 'affSTL_96' + env + '.pickle'), 'rb') as f:
+            train_dataset, test_dataset = pickle.load(f)
+
     else:
         raise TypeError('dataset type error')
 
