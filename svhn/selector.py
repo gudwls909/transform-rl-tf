@@ -25,7 +25,7 @@ known_models = [
 # 
 def svhn(cuda=True, model_root=None):
     print("Building and initializing svhn parameters")
-    from svhn import model, dataset
+    from svhn import model
     m = model.svhn(32, pretrained=os.path.join(model_root, 'svhn.pth'))
     if cuda:
         m = m.cuda()

@@ -28,11 +28,11 @@ class MnistEnvironment(object):
         self.threshold = 0.95 if self.type == 'r' else 0.95
         self._max_episode_steps = 10
         if env_type == 'rsst':
-            self.state_shape = [50, 50, 3]
-            self.state_size = 7500
+            self.state_shape = [110, 110, 3]
+            self.state_size = 110*110*3
         else:
-            self.state_shape = [32, 32, 3]
-            self.state_size = 32*32*3
+            self.state_shape = [96, 96, 3]
+            self.state_size = 96*96*3
 
         if self.type == 'r':
             self.action_size = 1
@@ -72,7 +72,7 @@ class MnistEnvironment(object):
         elif self.data_type == 'svhn':
             aff_filename = 'affSVHN_32'
         elif self.data_type == 'stl10':
-            aff_filenmae = 'affSTL_96'
+            aff_filename = 'affSTL_96'
             
         if not os.path.isfile('data/' + aff_filename + self.type + '.pickle'):
             print("=== No Train Data File Exist, Let's Generate it first ===")
@@ -109,7 +109,7 @@ class MnistEnvironment(object):
         else:  # self.type == 'rsst'
             self.del_params = [[0., 0., 0., 1., 1., 0., 0.]]
 
-        img_32size = util.theta2affine_img(self.img, self.del_thetas[-1], (32, 32))
+        img_32size = util.theta2affine_img(self.img, self.del_thetas[-1], (96, 96))
         # prob_set = util.all_prob(self.model, np.expand_dims(img_32size, axis=0), self.mc)
         # self.uncs = [util.get_mutual_informations(prob_set)[0]]  # save the uncertainty
         prob = np.clip(self.model.test(np.expand_dims(img_32size, axis=0))[0], 0, 0.9999)
@@ -133,7 +133,7 @@ class MnistEnvironment(object):
         next_img = util.theta2affine_img(self.img, del_theta)
 
         # calculate uncertainty
-        img_32size = util.theta2affine_img(self.img, del_theta, (32, 32))
+        img_32size = util.theta2affine_img(self.img, del_theta, (96, 96))
         # prob_set = util.all_prob(self.model, np.expand_dims(img_32size, axis=0), self.mc)
         # unc_after = util.get_mutual_informations(prob_set)[0]
         # unc_before = self.uncs[-1]

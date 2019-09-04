@@ -112,9 +112,9 @@ def random_affine_image(img, env_type, r_bound=[20, 50], sh_bound=[0.1, 0.2], sc
     aff_theta = affine_mtx[:2, :].flatten()
     pil_img = np2pil(img)
     if env_type == 'rsst':
-        pil_img = pil_img.transform((50,50), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
+        pil_img = pil_img.transform((110, 110), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
     else:
-        pil_img = pil_img.transform((32,32), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
+        pil_img = pil_img.transform((96, 96), Image.AFFINE, aff_theta, resample=Image.BICUBIC)
     img = pil2np(pil_img)
 
     return img
@@ -125,7 +125,7 @@ def param2theta(param, env):
     Args:
         param(np.array): [r, sh1, sh2, sc1, sc2].shape = (5,)
     """
-    img_size = 50 if env == 'rsst' else 32 
+    img_size = 110 if env == 'rsst' else 96
 
     # translation : move center of the image to (0,0)
     t1_mtx = theta2mtx(get_affine_theta('translation', param=[img_size/2, img_size/2]))

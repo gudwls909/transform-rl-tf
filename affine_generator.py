@@ -29,9 +29,13 @@ def main(env_type, data_type):
         svhn_train = tv.datasets.SVHN(join('data','svhn'), split='train', download=True)
         svhn_test = tv.datasets.SVHN(join('data','svhn'), split='test', download=True)
 
-        train_images = svhn_train.data.transpose(0,2,3,1) / 255.
+        if env_type == 'rsst':
+            train_images = svhn_train.data.transpose(0,2,3,1)[:50000] / 255.
+            train_targets = ((svhn_train.labels-1)%10).astype(np.uint8)[:50000]
+        else:
+            train_images = svhn_train.data.transpose(0, 2, 3, 1) / 255.
+            train_targets = ((svhn_train.labels - 1) % 10).astype(np.uint8)
         test_images = svhn_test.data.transpose(0,2,3,1) / 255.
-        train_targets = ((svhn_train.labels-1)%10).astype(np.uint8)
         test_targets = ((svhn_test.labels-1)%10).astype(np.uint8)
 
         aff_filename = 'affSVHN_32'
@@ -39,6 +43,9 @@ def main(env_type, data_type):
     elif data_type == 'stl10':
         # load STL10
         print('=== load STL10... ===')
+        stl10_train = tv.datasets.STL10(join('data', 'stl10'), split='train', download=True)
+        stl10_test = tv.datasets.STL10(join('data', 'stl10'), split='test', download=True)
+
         train_images = stl10_train.data.transpose(0,2,3,1) / 255.
         test_images = stl10_test.data.transpose(0,2,3,1) / 255.
 

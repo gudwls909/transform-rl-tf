@@ -49,7 +49,7 @@ known_models = [
 # 
 def stl10(cuda=True, model_root=None):
     print("Building and initializing stl10 parameters")
-    from stl10 import model, dataset
+    from stl10 import model
     m = model.stl10(32, pretrained=os.path.join(model_root, 'stl10.pth'))
     if cuda:
         m = m.cuda()
